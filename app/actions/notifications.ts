@@ -55,7 +55,7 @@ export async function getRecentNotifications(): Promise<NotificationItem[]> {
         });
 
         // Map them to unified structure
-        const newsItems: NotificationItem[] = news.map(n => ({
+        const newsItems: NotificationItem[] = news.map((n: any) => ({
             id: `news-${n.id}`,
             title: n.title,
             excerpt: n.content.substring(0, 60) + "...",
@@ -65,7 +65,7 @@ export async function getRecentNotifications(): Promise<NotificationItem[]> {
             image: n.image
         }));
 
-        const campaignItems: NotificationItem[] = campaigns.map(c => ({
+        const campaignItems: NotificationItem[] = campaigns.map((c: any) => ({
             id: `campaign-${c.id}`,
             title: c.title,
             excerpt: c.description ? c.description.substring(0, 60) + "..." : "Program Donasi Baru",
@@ -75,7 +75,7 @@ export async function getRecentNotifications(): Promise<NotificationItem[]> {
             image: c.bannerImage
         }));
 
-        const programItems: NotificationItem[] = programs.map(p => ({
+        const programItems: NotificationItem[] = programs.map((p: any) => ({
             id: `program-${p.slug}`,
             title: p.label,
             excerpt: p.pageDescription ? p.pageDescription.substring(0, 60) + "..." : "Program Baru",

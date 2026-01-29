@@ -36,7 +36,7 @@ export default async function BeritaDetailPage({ params }: { params: { id: strin
                 <span className="font-semibold text-sm">Detail Berita</span>
                 <ShareButton
                     title={news.title}
-                    text={news.content ? news.content.substring(0, 100) + "..." : "Baca berita ini di MuslimKita."}
+                    text={news.content ? news.content.substring(0, 100) + "..." : "Baca berita ini di DISA - Daarussyifa Islamic Super App."}
                     className="rounded-full"
                 />
             </div>

@@ -30,7 +30,7 @@ export default function SedekahProgram({ program, qrisImage, bankAccount, totalD
                         <Link href="/" className="p-2 bg-white/20 backdrop-blur-md rounded-full hover:bg-white/30 transition-colors">
                             <ArrowLeft className="w-6 h-6 text-white" />
                         </Link>
-                        <h1 className="text-lg font-bold tracking-wide">{program.categoryLabel || "Muslimkita"}</h1>
+                        <h1 className="text-lg font-bold tracking-wide">{program.categoryLabel || "DISA"}</h1>
                         <ShareButton
                             title={program.pageTitle}
                             text={program.pageDescription || "Mari bersedekah hari ini."}

@@ -20,7 +20,9 @@ const confettiConfig = {
     colors: ["#a864fd", "#29cdff", "#78ff44", "#ff718d", "#fdff6a"]
 };
 
-export default function PaymentSuccessPage() {
+import { Suspense } from "react";
+
+function PaymentSuccessContent() {
     const [showConfetti, setShowConfetti] = useState(false);
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -86,5 +88,13 @@ export default function PaymentSuccessPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function PaymentSuccessPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+            <PaymentSuccessContent />
+        </Suspense>
     );
 }

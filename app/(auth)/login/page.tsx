@@ -9,6 +9,9 @@ import { useState, useTransition, Suspense } from "react";
 import { Loader2, CheckCircle2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { login as loginAction } from "./actions";
+import { API_BASE_URL } from "@/lib/utils";
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
 
 function LoginForm() {
     const router = useRouter();
@@ -42,8 +45,51 @@ function LoginForm() {
         });
     };
 
+    const handleGoogleLogin = async () => {
+        // DEBUGGING: Cek apakah Capacitor mendeteksi platform Native
+        alert(`Platform: ${Capacitor.getPlatform()} | Native? ${Capacitor.isNativePlatform()}`);
+
+        if (Capacitor.isNativePlatform()) {
+            try {
+                alert("Mencoba Native Login..."); // Debug Point 1
+
+                const googleUser = await GoogleAuth.signIn();
+
+                alert("Native Login Sukses! Token: " + googleUser.authentication.idToken.substring(0, 10) + "..."); // Debug Point 2
+
+                const res = await fetch(`${API_BASE_URL}/api/auth/google/native`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken: googleUser.authentication.idToken, intent: 'login' })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    alert('Backend Verification Success! Redirecting...');
+                    if (data.redirect) router.push(data.redirect);
+                    else router.push('/');
+                    router.refresh();
+                } else {
+                    console.error("Native Auth API Error:", data.error);
+                    alert(`Login Gagal: ${data.error}`);
+                    setError(data.error);
+                }
+            } catch (e: any) {
+                console.error("Google Native Login Error", e);
+                // Show actual error to user for debugging
+                alert(`Native Error: ${JSON.stringify(e)}`); // Debug Point 3
+                setError("Gagal login dengan Google App");
+            }
+        } else {
+            alert("Mendeteksi Web Browser. Melakukan Redirect..."); // Debug Point 4
+            window.location.href = `${API_BASE_URL}/api/auth/google`;
+        }
+    };
+
     return (
         <Card className="w-full max-w-sm border-none shadow-lg">
+            {/* Header ... */}
             <CardHeader className="space-y-1">
                 <CardTitle className="text-2xl font-bold text-center text-primary">Masuk Akun</CardTitle>
                 <CardDescription className="text-center">
@@ -52,6 +98,7 @@ function LoginForm() {
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleLogin} className="space-y-4">
+                    {/* ... Existing ... */}
                     {isRegistered && (
                         <div className="bg-emerald-50 text-emerald-800 text-sm p-4 rounded-md flex items-start gap-2 border border-emerald-200">
                             <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" />
@@ -66,7 +113,7 @@ function LoginForm() {
                         </div>
                     )}
 
-                    <Button variant="outline" type="button" className="w-full gap-2 font-medium" onClick={() => window.location.href = '/api/auth/google'}>
+                    <Button variant="outline" type="button" className="w-full gap-2 font-medium" onClick={handleGoogleLogin}>
                         <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
                             <path
                                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

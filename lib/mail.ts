@@ -19,12 +19,12 @@ export async function sendVerificationEmail(email: string, code: string) {
         const info = await transporter.sendMail({
             from: `"Admin Majelis Daarussyifa" <${senderEmail}>`,
             to: email, // list of receivers
-            subject: "Verifikasi Akun MuslimKita - Daarussyifa Apps", // Subject line
+            subject: "Verifikasi Akun DISA - Daarussyifa Islamic Super App", // Subject line
             text: `Klik link berikut untuk verifikasi: ${verifyLink}`, // plain text body
             html: `
                 <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 600px; margin: 0 auto;">
                     <h2 style="color: #047857;">Verifikasi Akun</h2>
-                    <p>Terima kasih telah mendaftar di MuslimKita. Silahkan klik tombol di bawah ini untuk memverifikasi akun Anda:</p>
+                    <p>Terima kasih telah mendaftar di Daarussyifa Islamic Super App. Silahkan klik tombol di bawah ini untuk memverifikasi akun Anda:</p>
                     <a href="${verifyLink}" style="background-color: #047857; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin: 20px 0; font-weight: bold;">
                         Verifikasi Akun Saya
                     </a>

@@ -102,10 +102,10 @@ async function main() {
 
     // 4. Seed Default Settings
     const defaultSettings = [
-        { key: "majlisName", value: "MuslimKita" },
+        { key: "majlisName", value: "DISA" },
         { key: "majlisAddress", value: "Jl. Raya Bandung - Sumedang" },
         { key: "majlisPhone", value: "+62 812-3456-7890" },
-        { key: "runningText_content", value: "Selamat Datang di Aplikasi MuslimKita. Sucikan Harta, Bersihkan Jiwa. Salurkan Zakat, Infaq, dan Sedekah anda melalui kami." },
+        { key: "runningText_content", value: "Selamat Datang di Aplikasi DISA - Daarussyifa Islamic Super App. Sucikan Harta, Bersihkan Jiwa. Salurkan Zakat, Infaq, dan Sedekah anda melalui kami." },
         { key: "runningText_speed", value: "20" },
         { key: "runningText_isActive", value: "true" },
         { key: "zakatWidgetActive", value: "true" },

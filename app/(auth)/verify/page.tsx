@@ -7,7 +7,9 @@ import { useState, useTransition, useEffect } from "react";
 import { Loader2, MailCheck } from "lucide-react";
 import { verifyCode, resendCode } from "./actions";
 
-export default function VerifyPage() {
+import { Suspense } from "react";
+
+function VerifyContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const email = searchParams.get("email");
@@ -127,5 +129,13 @@ export default function VerifyPage() {
                 </CardFooter>
             </Card>
         </div>
+    );
+}
+
+export default function VerifyPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-muted/40" />}>
+            <VerifyContent />
+        </Suspense>
     );
 }

@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface AyahListProps {
     surah: SurahDetail;
-    tafsir: { ayat: number; teks: string }[];
+    tafsir?: { ayat: number; teks: string }[];
 }
 
 export function AyahList({ surah, tafsir }: AyahListProps) {
@@ -92,7 +92,7 @@ export function AyahList({ surah, tafsir }: AyahListProps) {
     };
 
     const handleCopy = (ayah: Ayah) => {
-        const textToCopy = `QS. ${surah.namaLatin}: ${ayah.nomorAyat}\n\n${ayah.teksArab}\n\n"${ayah.teksIndonesia}"\n\n- MuslimKita App`;
+        const textToCopy = `QS. ${surah.namaLatin}: ${ayah.nomorAyat}\n\n${ayah.teksArab}\n\n"${ayah.teksIndonesia}"\n\n- DISA App`;
         navigator.clipboard.writeText(textToCopy);
 
         setCopiedAyah(ayah.nomorAyat);
@@ -107,7 +107,7 @@ export function AyahList({ surah, tafsir }: AyahListProps) {
     const handleShare = async (ayah: Ayah) => {
         const shareData = {
             title: `QS. ${surah.namaLatin}: ${ayah.nomorAyat}`,
-            text: `QS. ${surah.namaLatin}: ${ayah.nomorAyat}\n\n${ayah.teksArab}\n\n"${ayah.teksIndonesia}"\n\nVia MuslimKita App`
+            text: `QS. ${surah.namaLatin}: ${ayah.nomorAyat}\n\n${ayah.teksArab}\n\n"${ayah.teksIndonesia}"\n\nVia DISA App`
         };
 
         if (navigator.share) {
@@ -122,6 +122,13 @@ export function AyahList({ surah, tafsir }: AyahListProps) {
     };
 
     const openTafsir = (nomorAyat: number) => {
+        if (!tafsir) {
+            toast({
+                variant: "destructive",
+                description: "Tafsir belum dimuat.",
+            });
+            return;
+        }
         const item = tafsir.find(t => t.ayat === nomorAyat);
         if (item) {
             setSelectedTafsir(item);

@@ -48,11 +48,12 @@ import { createUser, deleteUser, updateUserRole, toggleUserVerification } from "
 import { Role, User } from "@prisma/client";
 import { toast } from "sonner";
 
-interface SafeUser extends Omit<User, "password"> {
+interface SafeUser extends Omit<User, "password" | "createdAt"> {
     password?: string;
     isVerified: boolean;
     canAccessWaris: boolean;
     isContributor: boolean;
+    createdAt: string | Date;
 }
 
 export default function UsersClient({ initialData }: { initialData: SafeUser[] }) {

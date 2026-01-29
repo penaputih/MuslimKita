@@ -270,7 +270,7 @@ export function WarisPdfDocument({ data, heirs, result, deceasedGender }: WarisP
                 <View style={styles.header}>
                     <Text style={styles.title}>LAPORAN PEMBAGIAN WARIS ISLAM</Text>
                     <Text style={styles.subtitle}>
-                        Dicetak otomatis oleh Aplikasi MuslimKita - Daarussyifa Apps pada {new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}
+                        Dicetak otomatis oleh Aplikasi DISA - Daarussyifa Islamic Super App pada {new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}
                     </Text>
                 </View>
 

@@ -7,10 +7,11 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
-import { toast } from "sonner"; // Assuming sonner is installed, otherwise standard toast
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { FloatingBottomNav } from "@/components/FloatingBottomNav";
+import { API_BASE_URL } from "@/lib/utils";
 
 type Message = {
     id: string;
@@ -43,9 +44,11 @@ export default function TanyaSyifaPage() {
         checkAuth();
     }, []);
 
+
+
     const checkAuth = async () => {
         try {
-            const res = await fetch("/api/auth/session", { cache: "no-store" });
+            const res = await fetch(`${API_BASE_URL}/api/auth/session`, { cache: "no-store" });
             if (res.ok) {
                 const data = await res.json();
                 setUser(data.user);
@@ -87,7 +90,7 @@ export default function TanyaSyifaPage() {
 
     const fetchHistory = async () => {
         try {
-            const res = await fetch("/api/chat/history");
+            const res = await fetch(`${API_BASE_URL}/api/chat/history`);
             if (res.ok) {
                 const data = await res.json();
                 if (data.sessions) {
@@ -108,7 +111,7 @@ export default function TanyaSyifaPage() {
         sessionStorage.setItem("lastActiveSessionId", sessionId);
 
         try {
-            const res = await fetch(`/api/chat/history?sessionId=${sessionId}`);
+            const res = await fetch(`${API_BASE_URL}/api/chat/history?sessionId=${sessionId}`);
             if (res.ok) {
                 const data = await res.json();
                 setMessages(data.messages || []);
@@ -140,7 +143,7 @@ export default function TanyaSyifaPage() {
         }
 
         try {
-            const res = await fetch(`/api/chat/sessions/${sessionId}`, {
+            const res = await fetch(`${API_BASE_URL}/api/chat/sessions/${sessionId}`, {
                 method: "DELETE",
             });
 
@@ -205,7 +208,9 @@ export default function TanyaSyifaPage() {
                 sessionId: currentSessionId
             };
 
-            const res = await fetch("/api/chat", {
+
+
+            const res = await fetch(`${API_BASE_URL}/api/chat`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
@@ -245,7 +250,7 @@ export default function TanyaSyifaPage() {
         }
     };
 
-    if (status === "loading") {
+    if (authStatus === "loading") {
         return (
             <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-slate-950">
                 <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />

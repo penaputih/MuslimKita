@@ -49,7 +49,7 @@ export async function changePassword(formData: FormData) {
         const user = await prisma.user.findUnique({ where: { id: session.user.id } });
         if (!user) return { error: "User not found" };
 
-        const isMatch = await compare(currentPassword, user.password);
+        const isMatch = user.password ? await compare(currentPassword, user.password) : false;
         if (!isMatch) {
             return { error: "Password saat ini salah." };
         }

@@ -2,7 +2,9 @@ import type { NextConfig } from "next";
 
 // Force restart for Prisma Schema update
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    unoptimized: true
+  }
 };
 
 export default nextConfig;

@@ -142,7 +142,7 @@ export default function AdminLayout({
                             <div className="sr-only">
                                 <SheetTitle>Navigation Menu</SheetTitle>
                                 <SheetDescription>
-                                    Main navigation for MuslimKita Admin dashboard.
+                                    Main navigation for Muslimku Admin dashboard.
                                 </SheetDescription>
                             </div>
                             <nav className="grid gap-2 text-lg font-medium">
@@ -154,7 +154,7 @@ export default function AdminLayout({
                                         <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center">
                                             <Monitor className="size-5 text-primary" />
                                         </div>
-                                        <span className="text-xl font-bold text-primary">MuslimKita</span>
+                                        <span className="text-xl font-bold text-primary">DISA</span>
                                     </div>
                                     <span className="text-sm font-medium text-muted-foreground ml-1">Admin Dashboard</span>
                                 </Link>

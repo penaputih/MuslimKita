@@ -47,6 +47,8 @@ interface MenuItem {
     pageImage?: string;
     targetAmount?: number;
     currentAmount?: number;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 const AVAILABLE_COLORS = [

@@ -8,8 +8,13 @@ import { useTransition, useState } from "react";
 import { Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { register } from "./actions";
+import { API_BASE_URL } from "@/lib/utils";
+import { Capacitor } from '@capacitor/core';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
+    const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +29,46 @@ export default function RegisterPage() {
                 setError(result.error);
             }
         });
+    };
+
+    const handleGoogleRegister = async () => {
+        // DEBUGGING: Cek apakah Capacitor mendeteksi platform Native
+        alert(`Platform: ${Capacitor.getPlatform()} | Native? ${Capacitor.isNativePlatform()}`);
+
+        if (Capacitor.isNativePlatform()) {
+            try {
+                alert("Mencoba Native Register...");
+
+                const googleUser = await GoogleAuth.signIn();
+
+                alert("Native Register Sukses! Token: " + googleUser.authentication.idToken.substring(0, 10) + "...");
+
+                const res = await fetch(`${API_BASE_URL}/api/auth/google/native`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idToken: googleUser.authentication.idToken, intent: 'register' })
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    alert('Backend Verification Success! Redirecting...');
+                    if (data.redirect) router.push(data.redirect);
+                    else router.push('/');
+                    router.refresh();
+                } else {
+                    alert(`Register Gagal: ${data.error}`);
+                    setError(data.error);
+                }
+            } catch (e: any) {
+                console.error("Google Native Register Error", e);
+                alert(`Native Error: ${JSON.stringify(e)}`);
+                setError("Gagal daftar dengan Google App");
+            }
+        } else {
+            alert("Mendeteksi Web Browser. Melakukan Redirect...");
+            window.location.href = `${API_BASE_URL}/api/auth/google?intent=register`;
+        }
     };
 
     return (
@@ -43,7 +88,7 @@ export default function RegisterPage() {
                             </div>
                         )}
 
-                        <Button variant="outline" type="button" className="w-full gap-2 font-medium" onClick={() => window.location.href = '/api/auth/google?intent=register'}>
+                        <Button variant="outline" type="button" className="w-full gap-2 font-medium" onClick={handleGoogleRegister}>
                             <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
                                 <path
                                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

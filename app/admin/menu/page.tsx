@@ -19,6 +19,8 @@ export default async function MenuPage() {
         pageImage: item.pageImage ?? undefined,
         targetAmount: item.targetAmount ? Number(item.targetAmount) : 0,
         currentAmount: item.currentAmount ? Number(item.currentAmount) : 0,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString(),
     }));
 
     return <MenuClient initialData={formattedItems} />;

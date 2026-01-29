@@ -23,7 +23,7 @@ const arab = Scheherazade_New({
 });
 
 export const metadata: Metadata = {
-  title: "MuslimKita - Daarussyifa Apps",
+  title: "DISA - Daarussyifa Islamic Super App",
   description: "Aplikasi muslim dari Daarussyifa.",
   manifest: "/manifest.json",
 };
@@ -32,7 +32,11 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+
 };
+
+import { GoogleAuthInitializer } from "@/components/GoogleAuthInitializer";
+import BackButtonHandler from "@/components/BackButtonHandler";
 
 export default function RootLayout({
   children,
@@ -50,6 +54,8 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <GoogleAuthInitializer />
+          <BackButtonHandler />
           <DesktopLayoutWrapper>
             {children}
           </DesktopLayoutWrapper>
@@ -59,3 +65,4 @@ export default function RootLayout({
     </html>
   );
 }
+

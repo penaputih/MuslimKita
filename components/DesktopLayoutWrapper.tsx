@@ -12,10 +12,7 @@ export function DesktopLayoutWrapper({ children }: { children: React.ReactNode }
     }
 
     return (
-        <div className="min-h-screen w-full flex justify-center bg-slate-100 dark:bg-slate-950 bg-[url('/bg01.png')] bg-cover bg-center bg-fixed relative">
-            {/* Dark Overlay */}
-            <div className="absolute inset-0 bg-black/50" />
-
+        <div className="min-h-screen w-full flex justify-center bg-slate-100 dark:bg-slate-950 relative">
             {/* Mobile View Container */}
             <div className="w-full max-w-[540px] min-h-screen bg-background shadow-2xl overflow-x-hidden relative z-10">
                 {children}

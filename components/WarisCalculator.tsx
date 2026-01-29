@@ -175,7 +175,7 @@ export function WarisCalculator() {
             <div className="hidden print:block text-center mb-8 border-b pb-4">
                 <h1 className="text-2xl font-bold text-primary">Laporan Pembagian Waris Islam</h1>
                 <p className="text-sm text-muted-foreground mt-1">
-                    Dihitung menggunakan Aplikasi MuslimKita - Daarussyifa Apps pada {new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}
+                    Dihitung menggunakan Aplikasi DISA - Daarussyifa Islamic Super App pada {new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}
                 </p>
             </div>
 

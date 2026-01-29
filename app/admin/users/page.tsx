@@ -13,6 +13,7 @@ export default async function UsersPage() {
     const safeUsers = users.map((user) => ({
         ...user,
         password: "", // Don't expose hashed password
+        createdAt: user.createdAt.toISOString(),
     }));
 
     return (

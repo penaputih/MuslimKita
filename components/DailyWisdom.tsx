@@ -25,7 +25,7 @@ export function DailyWisdom() {
         if (navigator.share && doa) {
             navigator.share({
                 title: doa.doa,
-                text: `${doa.doa}\n\n"${doa.artinya}"\n\n— MuslimKita App`,
+                text: `${doa.doa}\n\n"${doa.artinya}"\n\n— DISA App`,
             }).catch(console.error);
         }
     };

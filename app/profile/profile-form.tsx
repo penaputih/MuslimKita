@@ -118,7 +118,11 @@ export function ProfileForm({ user, settings }: { user: UserProfile | null; sett
                     </p>
                     <div className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                     <p className="text-[10px] tracking-widest text-slate-400 dark:text-slate-500 font-bold">
-                        <a href="https:ridwannur.my.id">AGATHIAS.DEV</a></p>
+                        <a href="https://ridwannur.my.id">AGATHIAS.DEV</a></p>
+                    <div className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                    <p className="text-[10px] tracking-widest text-slate-400 dark:text-slate-500 font-bold">
+                        <a href="https://sociabuzz.com/agathias/support">Dukung Kami</a>
+                    </p>
                 </div>
 
                 {/* Theme Dialog (Shared) */}
@@ -169,7 +173,7 @@ export function ProfileForm({ user, settings }: { user: UserProfile | null; sett
                             <DialogTitle>Tentang Aplikasi</DialogTitle>
                         </DialogHeader>
                         <div className="py-4 text-justify text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                            {settings.description || "Aplikasi ZakatKita adalah platform digital untuk memudahkan pengelolaan zakat, infaq, dan sedekah secara transparan dan amanah."}
+                            {settings.description || "Aplikasi DISA adalah platform digital untuk memudahkan pengelolaan zakat, infaq, dan sedekah secara transparan dan amanah."}
                         </div>
                     </DialogContent>
                 </Dialog>
@@ -307,7 +311,11 @@ export function ProfileForm({ user, settings }: { user: UserProfile | null; sett
                 </p>
                 <div className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-600" />
                 <p className="text-[10px] tracking-widest text-slate-400 dark:text-slate-500 font-bold">
-                    <a href="https:ridwannur.my.id">AGATHIAS.DEV</a>
+                    <a href="https://ridwannur.my.id">AGATHIAS.DEV</a>
+                </p>
+                <div className="h-1 w-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                <p className="text-[10px] tracking-widest text-slate-400 dark:text-slate-500 font-bold">
+                    <a href="https://sociabuzz.com/agathias/support">Dukung Kami</a>
                 </p>
             </div>
 
@@ -429,7 +437,7 @@ export function ProfileForm({ user, settings }: { user: UserProfile | null; sett
                         <DialogTitle>Tentang Aplikasi</DialogTitle>
                     </DialogHeader>
                     <div className="py-4 text-justify text-sm leading-relaxed text-slate-600 dark:text-slate-300">
-                        {settings.description || "Aplikasi ZakatKita adalah platform digital untuk memudahkan pengelolaan zakat, infaq, dan sedekah secara transparan dan amanah."}
+                        {settings.description || "Aplikasi DISA adalah platform digital untuk memudahkan pengelolaan zakat, infaq, dan sedekah secara transparan dan amanah."}
                     </div>
                 </DialogContent>
             </Dialog>

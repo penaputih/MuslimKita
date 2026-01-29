@@ -62,7 +62,7 @@ export default function SettingsClient({ initialData }: { initialData: SettingsD
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="majlisName">Nama Majlis / Komunitas</Label>
-                            <Input id="majlisName" name="majlisName" defaultValue={initialData.majlisName || "MuslimKita - Daarussyifa Apps"} />
+                            <Input id="majlisName" name="majlisName" defaultValue={initialData.majlisName || "DISA - Daarussyifa Islamic Super App"} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="majlisAddress">Alamat Lengkap</Label>
