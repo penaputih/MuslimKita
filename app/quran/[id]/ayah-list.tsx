@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface AyahListProps {
     surah: SurahDetail;
-    tafsir: { ayat: number; teks: string }[];
+    tafsir?: { ayat: number; teks: string }[];
 }
 
 export function AyahList({ surah, tafsir }: AyahListProps) {
@@ -122,6 +122,13 @@ export function AyahList({ surah, tafsir }: AyahListProps) {
     };
 
     const openTafsir = (nomorAyat: number) => {
+        if (!tafsir) {
+            toast({
+                variant: "destructive",
+                description: "Tafsir belum dimuat.",
+            });
+            return;
+        }
         const item = tafsir.find(t => t.ayat === nomorAyat);
         if (item) {
             setSelectedTafsir(item);

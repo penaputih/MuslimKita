@@ -29,7 +29,7 @@ export async function GET(req: Request) {
 
         // 2. If Pending, check Midtrans directly (Sync fallback)
         try {
-            const statusResponse = await coreApi.transaction.status(orderId);
+            const statusResponse = await (coreApi.transaction as any).status(orderId);
             const transactionStatus = statusResponse.transaction_status;
             const fraudStatus = statusResponse.fraud_status;
 

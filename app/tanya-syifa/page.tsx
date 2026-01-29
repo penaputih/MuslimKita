@@ -245,7 +245,7 @@ export default function TanyaSyifaPage() {
         }
     };
 
-    if (status === "loading") {
+    if (authStatus === "loading") {
         return (
             <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-slate-950">
                 <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
