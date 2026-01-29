@@ -1,0 +1,178 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Transaction {
+  id         String   @id @default(cuid())
+  amount     Decimal
+  proofImage String
+  status     Status   @default(PENDING)
+  createdAt  DateTime @default(now())
+  snapToken       String?
+  paymentType     String?
+  customerDetails Json?
+  metadata        Json?
+
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+  campaignId String?
+  menuItem   MenuItem? @relation(fields: [menuItemId], references: [id])
+  menuItemId String?
+}
+
+enum Status {
+  PENDING
+  VERIFIED
+}
+
+model Campaign {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?  @db.Text
+  targetAmount  Decimal
+  currentAmount Decimal  @default(0)
+  bannerImage   String
+  category      Category @relation(fields: [categoryId], references: [id])
+  categoryId    String
+  endDate       DateTime?
+  createdAt     DateTime @default(now())
+  transactions  Transaction[]
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  campaigns Campaign[]
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  ustadzName  String
+  date        DateTime
+  time        String
+  location    String
+  posterImage String?
+  createdAt   DateTime @default(now())
+}
+
+model Announcement {
+  id        String   @id @default(cuid())
+  title     String
+  image     String
+  link      String?
+  createdAt DateTime @default(now())
+}
+
+model News {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @db.Text
+  image     String
+  author    String
+  isFeatured Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String?
+  role      Role     @default(MEMBER)
+  isVerified Boolean @default(false)
+  image     String?
+  phone     String?
+  canAccessWaris Boolean @default(false)
+  isContributor Boolean @default(false)
+  verificationCode String?
+  verificationCodeExpires DateTime?
+  createdAt DateTime @default(now())
+  transactions Transaction[]
+  chatSessions ChatSession[]
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+model Settings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+}
+
+model Banner {
+  id        String   @id @default(cuid())
+  title     String
+  subtitle  String?
+  image     String
+  ctaText   String?
+  ctaLink   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Hadith {
+  id        String   @id @default(cuid())
+  text      String   @db.Text
+  narrator  String   @default("-")
+  source    String   // e.g., "HR. Bukhari"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+}
+
+model MenuItem {
+  id        String   @id @default(cuid())
+  label     String
+  icon      String   // Lucide icon name
+  href      String
+  color     String   // Tailwind classes e.g. "bg-emerald-100 text-emerald-600"
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+
+  // Page Template Fields
+  type            String   @default("LINK") // LINK, PAGE
+  template        String   @default("NONE") // NONE, WAKAF, SEDEKAH
+  slug            String?  @unique
+  pageTitle       String?
+  categoryLabel   String?  @default("Program Utama")
+  pageDescription String? @db.Text
+  pageImage       String?
+  targetAmount    Decimal?
+  currentAmount   Decimal? @default(0)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+  transactions Transaction[]
+}
+
+model ChatSession {
+  id        String        @id @default(cuid())
+  title     String        // Judul otomatis (misal: "Pertanyaan Zakat...")
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime      @default(now())
+  messages  ChatMessage[] // Relasi ke pesan
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  role      String      // "user" atau "model"
+  content   String      @db.Text // Teks panjang
+  image     String?     @db.Text // Base64 image (opsional)
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt DateTime    @default(now())
+}
