@@ -13,7 +13,7 @@ const defaultMenuItems = [
     { label: "Hitung Zakat", icon: "Calculator", color: "bg-emerald-100 text-emerald-600", href: "/zakat", order: 1 },
     { label: "Wakaf Asrama", icon: "Tent", color: "bg-blue-100 text-blue-600", href: "/wakaf/asrama", order: 2 },
     { label: "Sedekah Subuh", icon: "HandHeart", color: "bg-rose-100 text-rose-600", href: "/sedekah-subuh", order: 3 },
-    { label: "Jadwal Kajian", icon: "Calendar", color: "bg-amber-100 text-amber-600", href: "/jadwal-kajian", order: 4 },
+    { label: "Doa dan Dzikir", icon: "BookHeart", color: "bg-amber-100 text-amber-600", href: "/doa", order: 4 },
     { label: "Al-Qur'an", icon: "BookOpen", color: "bg-violet-100 text-violet-600", href: "/quran", order: 5 },
     { label: "Info Majlis", icon: "Megaphone", color: "bg-cyan-100 text-cyan-600", href: "/berita", order: 6 },
     { label: "Tanya Syifa", icon: "MessageCircleQuestion", color: "bg-orange-100 text-orange-600", href: "/tanya-syifa", order: 7 },
@@ -71,6 +71,21 @@ async function main() {
             data: { label: "Tanya Syifa", href: "/tanya-syifa" }
         });
         console.log("Migrated Tanya Ustadz to Tanya Syifa");
+    } catch (e) {
+        console.log("Migration skipped or failed (safe to ignore if new db)", e);
+    }
+
+    // Migration: Rename Jadwal Kajian to Doa dan Dzikir
+    try {
+        await prisma.menuItem.updateMany({
+            where: { label: "Jadwal Kajian" },
+            data: {
+                label: "Doa dan Dzikir",
+                href: "/doa",
+                icon: "BookHeart"
+            }
+        });
+        console.log("Migrated Jadwal Kajian to Doa dan Dzikir");
     } catch (e) {
         console.log("Migration skipped or failed (safe to ignore if new db)", e);
     }

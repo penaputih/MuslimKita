@@ -1,7 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">MuslimKita</string>
-    <string name="title_activity_main">MuslimKita</string>
+    <string name="app_name">DISA: Daarussyifa Islamic Super App</string>
+    <string name="title_activity_main">DISA: Daarussyifa Islamic Super App</string>
     <string name="package_name">com.daarussyifa.app</string>
     <string name="custom_url_scheme">com.daarussyifa.app</string>
+    <string name="server_client_id">722190074692-upp6tm6iskg4ksrdrfc63i1n9j6cenb1.apps.googleusercontent.com</string>
 </resources>

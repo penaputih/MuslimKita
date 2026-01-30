@@ -46,16 +46,9 @@ function LoginForm() {
     };
 
     const handleGoogleLogin = async () => {
-        // DEBUGGING: Cek apakah Capacitor mendeteksi platform Native
-        alert(`Platform: ${Capacitor.getPlatform()} | Native? ${Capacitor.isNativePlatform()}`);
-
         if (Capacitor.isNativePlatform()) {
             try {
-                alert("Mencoba Native Login..."); // Debug Point 1
-
                 const googleUser = await GoogleAuth.signIn();
-
-                alert("Native Login Sukses! Token: " + googleUser.authentication.idToken.substring(0, 10) + "..."); // Debug Point 2
 
                 const res = await fetch(`${API_BASE_URL}/api/auth/google/native`, {
                     method: 'POST',
@@ -66,23 +59,19 @@ function LoginForm() {
                 const data = await res.json();
 
                 if (data.success) {
-                    alert('Backend Verification Success! Redirecting...');
                     if (data.redirect) router.push(data.redirect);
                     else router.push('/');
                     router.refresh();
                 } else {
                     console.error("Native Auth API Error:", data.error);
-                    alert(`Login Gagal: ${data.error}`);
-                    setError(data.error);
+                    setError(data.error || "Login gagal");
                 }
             } catch (e: any) {
                 console.error("Google Native Login Error", e);
-                // Show actual error to user for debugging
-                alert(`Native Error: ${JSON.stringify(e)}`); // Debug Point 3
+                // Silent error log, only show generic verification failure if needed
                 setError("Gagal login dengan Google App");
             }
         } else {
-            alert("Mendeteksi Web Browser. Melakukan Redirect..."); // Debug Point 4
             window.location.href = `${API_BASE_URL}/api/auth/google`;
         }
     };

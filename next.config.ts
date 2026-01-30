@@ -1,10 +1,18 @@
+
 import type { NextConfig } from "next";
 
-// Force restart for Prisma Schema update
 const nextConfig: NextConfig = {
   images: {
     unoptimized: true
-  }
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/proxy/equran/:path*',
+        destination: 'https://equran.id/api/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

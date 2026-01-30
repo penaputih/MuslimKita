@@ -11,7 +11,7 @@ import {
     DialogTitle,
     DialogDescription,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { useToast } from "@/hooks/use-toast";
 
 interface AyahListProps {
@@ -182,7 +182,6 @@ export function AyahList({ surah, tafsir }: AyahListProps) {
                         </div>
 
                         {/* Arabic Text */}
-                        {/* Arabic Text */}
                         <p
                             className="font-arab text-3xl md:text-4xl text-right leading-loose md:leading-[2.5] text-neutral-800 dark:text-slate-100 mb-6 px-1"
                             dir="rtl"
@@ -253,8 +252,8 @@ export function AyahList({ surah, tafsir }: AyahListProps) {
                         <DialogTitle>Tafsir Ayat {selectedTafsir?.ayat}</DialogTitle>
                         <DialogDescription>Sumber: Kemenag RI</DialogDescription>
                     </DialogHeader>
-                    <div className="flex-1 overflow-y-auto pr-2">
-                        <div className="text-sm leading-relaxed text-justify mt-2 pb-4">
+                    <div className="flex-1 overflow-y-auto pr-2 -mr-2">
+                        <div className="text-sm leading-loose text-left pb-4 whitespace-pre-wrap">
                             {selectedTafsir?.teks}
                         </div>
                     </div>

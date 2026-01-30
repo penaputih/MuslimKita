@@ -32,16 +32,9 @@ export default function RegisterPage() {
     };
 
     const handleGoogleRegister = async () => {
-        // DEBUGGING: Cek apakah Capacitor mendeteksi platform Native
-        alert(`Platform: ${Capacitor.getPlatform()} | Native? ${Capacitor.isNativePlatform()}`);
-
         if (Capacitor.isNativePlatform()) {
             try {
-                alert("Mencoba Native Register...");
-
                 const googleUser = await GoogleAuth.signIn();
-
-                alert("Native Register Sukses! Token: " + googleUser.authentication.idToken.substring(0, 10) + "...");
 
                 const res = await fetch(`${API_BASE_URL}/api/auth/google/native`, {
                     method: 'POST',
@@ -52,21 +45,18 @@ export default function RegisterPage() {
                 const data = await res.json();
 
                 if (data.success) {
-                    alert('Backend Verification Success! Redirecting...');
                     if (data.redirect) router.push(data.redirect);
                     else router.push('/');
                     router.refresh();
                 } else {
-                    alert(`Register Gagal: ${data.error}`);
-                    setError(data.error);
+                    console.error("Native Auth API Error:", data.error);
+                    setError(data.error || "Registrasi gagal");
                 }
             } catch (e: any) {
                 console.error("Google Native Register Error", e);
-                alert(`Native Error: ${JSON.stringify(e)}`);
                 setError("Gagal daftar dengan Google App");
             }
         } else {
-            alert("Mendeteksi Web Browser. Melakukan Redirect...");
             window.location.href = `${API_BASE_URL}/api/auth/google?intent=register`;
         }
     };
