@@ -149,9 +149,14 @@ export function WarisCalculator() {
         if (deceasedGender === "L" && key === HeirType.HUSBAND) return false;
         if (deceasedGender === "P" && key === HeirType.WIFE) return false;
 
-        // Single instance constraints (Father & Mother)
+        // Single instance constraints (Parents, Spouses, Grandparents)
         if (key === HeirType.FATHER && heirs.some(h => h.type === HeirType.FATHER)) return false;
         if (key === HeirType.MOTHER && heirs.some(h => h.type === HeirType.MOTHER)) return false;
+        if (key === HeirType.HUSBAND && heirs.some(h => h.type === HeirType.HUSBAND)) return false;
+        if (key === HeirType.WIFE && heirs.some(h => h.type === HeirType.WIFE)) return false;
+        if (key === HeirType.GRANDFATHER_FATHER && heirs.some(h => h.type === HeirType.GRANDFATHER_FATHER)) return false;
+        if (key === HeirType.GRANDMOTHER_MOTHER && heirs.some(h => h.type === HeirType.GRANDMOTHER_MOTHER)) return false;
+        if (key === HeirType.GRANDMOTHER_FATHER && heirs.some(h => h.type === HeirType.GRANDMOTHER_FATHER)) return false;
 
         return true;
     });
