@@ -11,10 +11,17 @@ interface ProgramProps {
     program: any; // Typed as any for flexibility with Prisma object
     qrisImage?: string;
     bankAccount?: string;
-    totalDonors?: number;
+    isOfflinePaymentActive?: boolean;
+    isOnlinePaymentActive?: boolean;
 }
 
-export default function SedekahProgram({ program, qrisImage, bankAccount, totalDonors = 0 }: ProgramProps) {
+export default function SedekahProgram({
+    program,
+    qrisImage,
+    bankAccount,
+    isOfflinePaymentActive = false,
+    isOnlinePaymentActive = true
+}: ProgramProps) {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     return (
         <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white pb-24">
@@ -84,19 +91,10 @@ export default function SedekahProgram({ program, qrisImage, bankAccount, totalD
 
             {/* Impact Stats (Optional simulated) */}
             <div className="px-4 mb-24">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-neutral-100 text-center space-y-1">
-                        <Heart className="w-6 h-6 text-rose-500 mx-auto mb-2" />
-                        <div className="text-2xl font-bold text-neutral-800">
-                            {totalDonors}
-                        </div>
-                        <div className="text-xs text-neutral-500">Orang Bersedekah</div>
-                    </div>
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-neutral-100 text-center space-y-1">
-                        <Sun className="w-6 h-6 text-orange-500 mx-auto mb-2" />
-                        <div className="text-2xl font-bold text-neutral-800">Everyday</div>
-                        <div className="text-xs text-neutral-500">Istiqomah</div>
-                    </div>
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-neutral-100 text-center space-y-1">
+                    <Sun className="w-6 h-6 text-orange-500 mx-auto mb-2" />
+                    <div className="text-2xl font-bold text-neutral-800">Everyday</div>
+                    <div className="text-xs text-neutral-500">Istiqomah</div>
                 </div>
             </div>
 
@@ -117,6 +115,8 @@ export default function SedekahProgram({ program, qrisImage, bankAccount, totalD
                     qrisImage={qrisImage}
                     bankAccount={bankAccount}
                     programId={program.id}
+                    isOfflinePaymentActive={isOfflinePaymentActive}
+                    isOnlinePaymentActive={isOnlinePaymentActive}
                 />
             </div>
         </main>

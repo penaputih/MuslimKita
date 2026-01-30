@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
+//Metode Kompilasi Hukum Isla (KHI)
+
 export default async function WarisPage() {
     const session = await getSession();
 
@@ -118,7 +120,7 @@ export default async function WarisPage() {
                 <div className="mb-6 print:hidden">
                     <h2 className="text-xl font-bold mb-2">Hitung Pembagian Waris</h2>
                     <p className="text-muted-foreground text-sm">
-                        Alat bantu hitung pembagian harta warisan berdasarkan Syariat Islam (Mazhab Syafi&apos;i).
+                        Alat bantu hitung pembagian harta warisan berdasarkan Syariat Islam (Mazhab Syafi&apos;i dan Kompilasi Hukum Islam).
                     </p>
                 </div>
 

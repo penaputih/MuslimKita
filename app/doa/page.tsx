@@ -5,12 +5,13 @@ import { DoaItem, getDoaList } from "@/lib/doa-api";
 import { DZIKIR_PAGI, DZIKIR_PETANG, DzikirItem } from "@/data/dzikir";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, BookHeart, ChevronDown, ChevronUp, Copy, Share2, Moon, Sun, RefreshCcw } from "lucide-react";
+import { Search, BookHeart, ChevronDown, ChevronLeft, ChevronUp, Copy, Share2, Moon, Sun, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { FloatingBottomNav } from "@/components/FloatingBottomNav";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 export default function DoaDzikirPage() {
     const [doas, setDoas] = useState<DoaItem[]>([]);
@@ -71,6 +72,11 @@ export default function DoaDzikirPage() {
             <div className="bg-white dark:bg-slate-900 sticky top-0 z-10 border-b border-neutral-100 dark:border-slate-800">
                 <div className="px-4 py-4">
                     <div className="flex items-center gap-3 mb-4">
+                        <Link href="/">
+                            <Button variant="ghost" size="icon" className="-ml-2 h-8 w-8 shrink-0">
+                                <ChevronLeft className="size-5" />
+                            </Button>
+                        </Link>
                         <div className="size-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-500">
                             <BookHeart className="size-5" />
                         </div>

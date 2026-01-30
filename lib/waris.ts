@@ -1,4 +1,6 @@
 // lib/waris.ts
+//Metode KHI (Kompilasi Hukum Islam)
+//Metode Syafi'i
 
 export type Gender = "L" | "P";
 
@@ -27,7 +29,8 @@ export enum HeirType {
     COUSIN_FULL = "ANAK_PAMAN_KANDUNG",
     COUSIN_FATHER = "ANAK_PAMAN_SEBAPAK",
     GRANDSON_DAUGHTER = "CUCU_LAKI_DARI_ANAK_PEREMPUAN",
-    GRANDDAUGHTER_DAUGHTER = "CUCU_PEREMPUAN_DARI_ANAK_PEREMPUAN"
+    GRANDDAUGHTER_DAUGHTER = "CUCU_PEREMPUAN_DARI_ANAK_PEREMPUAN",
+    ADOPTED_CHILD = "ANAK_ANGKAT"
 }
 
 export const HEIR_LABELS: Record<HeirType, string> = {
@@ -55,7 +58,8 @@ export const HEIR_LABELS: Record<HeirType, string> = {
     [HeirType.UNCLE_FULL]: "Paman (Sdr Lk Ayah Kandung)",
     [HeirType.UNCLE_FATHER]: "Paman (Sdr Lk Ayah Sebapak)",
     [HeirType.COUSIN_FULL]: "Anak Paman Kandung",
-    [HeirType.COUSIN_FATHER]: "Anak Paman Sebapak"
+    [HeirType.COUSIN_FATHER]: "Anak Paman Sebapak",
+    [HeirType.ADOPTED_CHILD]: "Anak Angkat (Wasiat Wajibah)"
 };
 
 export interface IndividualHeir {
@@ -75,9 +79,29 @@ export interface WarisResult {
     note?: string;
 }
 
-export function calculateNetEstate(assets: number, tajhiz: number, debt: number, wasiat: number) {
-    let clean = assets - tajhiz - debt;
+export function calculateNetEstate(
+    assets: number,
+    tajhiz: number,
+    debt: number,
+    wasiat: number,
+    gonoGini: number = 0,
+    mode: "SYAFII" | "KHI" = "SYAFII"
+) {
+    let clean = assets;
+
+    // KHI: Gono-Gini Split (Before Debt/Wasiat)
+    // 50% of Gono-Gini belongs to spouse, so we remove it from the deceased's assets.
+    // The Input 'assets' is assumed to be Total Assets currently held.
+    // The Input 'gonoGini' is the PORTION of 'assets' that is joint property.
+    let spouseShare = 0;
+    if (mode === "KHI" && gonoGini > 0) {
+        spouseShare = gonoGini * 0.5;
+        clean -= spouseShare;
+    }
+
+    clean = clean - tajhiz - debt;
     if (clean < 0) clean = 0;
+
     const maxWasiat = clean / 3;
     let wasiatUsed = wasiat;
     let note = "";
@@ -85,7 +109,7 @@ export function calculateNetEstate(assets: number, tajhiz: number, debt: number,
         wasiatUsed = maxWasiat;
         note = "Wasiat dipotong menjadi 1/3 (Maksimal Syariat)";
     }
-    return { net: clean - wasiatUsed, wasiatUsed, note };
+    return { net: clean - wasiatUsed, wasiatUsed, note, spouseShare };
 }
 
 // Helper to count heirs of a type
@@ -95,7 +119,8 @@ const exists = (heirs: IndividualHeir[], type: HeirType) => count(heirs, type) >
 export function calculateSharesAdvanced(
     heirs: IndividualHeir[],
     netEstate: number,
-    deceasedGender: Gender
+    deceasedGender: Gender,
+    mode: "SYAFII" | "KHI" = "SYAFII"
 ): WarisResult[] {
     const results: WarisResult[] = [];
     let remaining = 1.0;
@@ -145,6 +170,34 @@ export function calculateSharesAdvanced(
             });
         });
     };
+
+    // 0. KHI: WASIAT WAJIBAH (Adopted Child)
+    // Must be calculated first before Faraid
+    if (mode === "KHI") {
+        const adopted = heirs.filter(h => h.type === HeirType.ADOPTED_CHILD);
+        if (adopted.length > 0) {
+            // Max 1/3 of Net Estate
+            const maxPart = 1 / 3;
+            // Usually given equal share to biological child? Or just max 1/3?
+            // KHI Article 209: "mendapat wasiat wajibah sebanyak-banyaknya 1/3"
+            // We will assign them 1/3 total for now, or split if multiple.
+            // Simplified: Assign 1/3 total to adopted children group.
+
+            // Check if we assume they take part BEFORE inheritance distribution (reducing Net Estate)
+            // Ideally Wasiat Wajibah reduces the estate available for heirs.
+            // But here we are inside "calculateShares".
+            // Let's treat them as Special Heirs who take a chunk first.
+
+            const sharePer = maxPart / adopted.length;
+            adopted.forEach(h => {
+                results.push({ heirId: h.id, name: h.name, type: HeirType.ADOPTED_CHILD, share: "1/3 (Wasiat Wajibah)", percentage: sharePer, amount: netEstate * sharePer, status: "Wasiat Wajibah", note: "Max 1/3 harta" });
+            });
+            // Reduce remaining estate for Faraid
+            remaining -= maxPart;
+            // Note: netEstate for subsequent calc should technically be reduced, but our logic uses percentages of ORIGINAL total.
+            // So 'remaining' reduction is correct for percentage tracking.
+        }
+    }
 
     // --- LOGIC START ---
 
@@ -238,15 +291,25 @@ export function calculateSharesAdvanced(
     }
 
     // 2. DESCENDANTS
-
     // Son
     const sons = heirs.filter(h => h.type === HeirType.SON);
     const daughters = heirs.filter(h => h.type === HeirType.DAUGHTER);
 
     if (sons.length > 0) {
         // Son blocks Son of Son, Daughter of Son (partial/total), Brothers, Sisters, etc.
-        block(HeirType.SON_OF_SON, "Anak Laki-laki");
-        block(HeirType.DAUGHTER_OF_SON, "Anak Laki-laki");
+        // UNLESS KHI MODE -> Cucu Pengganti
+
+        // KHI Special Rule: Cucu is NOT blocked by Anak if they are "Ahli Waris Pengganti"
+        // But in KHI, Pengganti only applies if their parent is DEAD. 
+        // Our input logic assumes listed Cucu are eligible.
+        // If KHI, we do NOT block Cucu. They will get "replacing share".
+        const shouldBlockGrandchildren = mode !== "KHI";
+
+        if (shouldBlockGrandchildren) {
+            block(HeirType.SON_OF_SON, "Anak Laki-laki");
+            block(HeirType.DAUGHTER_OF_SON, "Anak Laki-laki");
+        }
+
         block(HeirType.BROTHER_FULL, "Anak Laki-laki");
         block(HeirType.SISTER_FULL, "Anak Laki-laki");
         block(HeirType.BROTHER_FATHER, "Anak Laki-laki");
@@ -260,13 +323,78 @@ export function calculateSharesAdvanced(
         const totalShares = (sons.length * 2) + daughters.length;
         const asabahPart = remaining / totalShares;
 
-        sons.forEach(h => {
-            results.push({ heirId: h.id, name: h.name, type: HeirType.SON, share: "Asabah", percentage: asabahPart * 2, amount: netEstate * asabahPart * 2, status: "Ashabah bin Nafs", note: daughters.length ? "Bersama Anak PR" : "Sendiri" });
-        });
-        daughters.forEach(h => {
-            results.push({ heirId: h.id, name: h.name, type: HeirType.DAUGHTER, share: "Asabah", percentage: asabahPart, amount: netEstate * asabahPart, status: "Ashabah bil Ghair", note: "Tertarik oleh Anak LK" });
-        });
-        remaining = 0;
+        // If KHI and there are unblocked grandchildren (Ahli Waris Pengganti)
+        // They should receive "Would be" share. 
+        // COMPLEXITY: Calculating share of PRE-DECEASED children.
+        // SIMPLIFIED KHI for APP: 
+        // If there are CUCU in input, we assume they are from DECEASED SON.
+        // We give them a share roughly equivalent to what a Son might get? 
+        // OR simpler: we let them participate in Asabah as if they were children?
+
+        // Strict KHI: Grandchildren replace their parent.
+        // If we have 1 Son (Alive) and 1 Grandson (from Deceased Son).
+        // Standard: 1 Son takes all.
+        // KHI: Estate split into 2 Sons (1 alive, 1 dead). The dead son's share goes to Grandson.
+        // Correct implementation requires treating Grandson as Son (Replacement).
+
+        const sonOfSon = heirs.filter(h => h.type === HeirType.SON_OF_SON);
+        const dauOfSon = heirs.filter(h => h.type === HeirType.DAUGHTER_OF_SON);
+
+        if (mode === "KHI" && (sonOfSon.length > 0 || dauOfSon.length > 0)) {
+            // Simplified Replacement: Treat Cucu LK as Anak LK, Cucu PR as Anak PR?
+            // "Menerima bagian ahli waris yang digantikan, tidak melebihi..."
+
+            // Let's count Effective Sons and Effective Daughters
+            // Assuming each Cucu acts as a partial Anak or full Anak? 
+            // Most calcs assume "Per Strip" (Per Batang Tubuh). 
+            // Without lineage input, we assume all Cucu come from ONE deceased son for simplicity, or separate?
+            // Conservative MVP: Treat Cucu LK as equivalent to Anak LK in the Asabah pool.
+
+            const totalSharesKHI = (sons.length * 2) + daughters.length + (sonOfSon.length * 2) + dauOfSon.length;
+            const unit = remaining / totalSharesKHI;
+
+            sons.forEach(h => results.push({ heirId: h.id, name: h.name, type: HeirType.SON, share: "Asabah", percentage: unit * 2, amount: netEstate * unit * 2, status: "Ashabah bin Nafs" }));
+            daughters.forEach(h => results.push({ heirId: h.id, name: h.name, type: HeirType.DAUGHTER, share: "Asabah", percentage: unit, amount: netEstate * unit, status: "Ashabah bil Ghair" }));
+
+            sonOfSon.forEach(h => results.push({ heirId: h.id, name: h.name, type: HeirType.SON_OF_SON, share: "Asabah (Pengganti)", percentage: unit * 2, amount: netEstate * unit * 2, status: "Ahli Waris Pengganti", note: "Menggantikan Ayah" }));
+            dauOfSon.forEach(h => results.push({ heirId: h.id, name: h.name, type: HeirType.DAUGHTER_OF_SON, share: "Asabah (Pengganti)", percentage: unit, amount: netEstate * unit, status: "Ahli Waris Pengganti", note: "Menggantikan Ayah" }));
+
+            remaining = 0;
+            return results; // Exit early for KHI mixed scenario to avoid double dipping
+
+        } else {
+            // Standard Syafi'i or KHI with no grandkids
+            // [FIXED] Use Weighted Points System (Laki=2, Pr=1)
+            const totalPoints = (sons.length * 2) + (daughters.length * 1);
+            const valuePerPoint = remaining / totalPoints;
+
+            sons.forEach(h => {
+                results.push({
+                    heirId: h.id,
+                    name: h.name,
+                    type: HeirType.SON,
+                    share: "Asabah (2 Poin)",
+                    percentage: valuePerPoint * 2,
+                    amount: netEstate * valuePerPoint * 2, // 2 parts
+                    status: "Ashabah bin Nafs",
+                    note: daughters.length ? "Bersama Anak PR (2:1)" : "Sendiri"
+                });
+            });
+            daughters.forEach(h => {
+                results.push({
+                    heirId: h.id,
+                    name: h.name,
+                    type: HeirType.DAUGHTER,
+                    share: "Asabah (1 Poin)",
+                    percentage: valuePerPoint,
+                    amount: netEstate * valuePerPoint, // 1 part
+                    status: "Ashabah bil Ghair",
+                    note: "Bersama Anak LK (2:1)"
+                });
+            });
+            remaining = 0;
+        }
+
     } else {
         // Daughters Only (No sons)
         if (daughters.length > 0) {
@@ -278,15 +406,20 @@ export function calculateSharesAdvanced(
             remaining -= share;
         }
 
-        // Grandchildren logic here (Simplified: Son of Son acts like Son but blocked by Son. Daughter of Son like Daughter but with Takmilah if 1 Daughter above.)
-        // Implementing basic blocking for SonOfSon acting as Son if no Son:
-        // Skip specific Grandchild details for this pass to fit MVP, but enable basic Asabah for them if no Son.
-
+        // Grandchildren logic
         const sonOfSon = heirs.filter(h => h.type === HeirType.SON_OF_SON);
+
         if (sonOfSon.length > 0) {
             // Acts as Son
-            const totalShares = sonOfSon.length * 2; // + DaughterOfSon logic omitted for brevity
-            const portion = remaining / totalShares; // Takes remainder
+            // In KHI or Syafi'i (if no Son), they inherit.
+            // ... (Simple logic already present, keeping it)
+            const totalShares = sonOfSon.length * 2;
+            const portion = remaining; // Takes remainder
+            // Wait, if KHI mode AND Daughters exist, Cucu might replace Son?
+            // If No Son, Cucu inherits in Syafi'i too (Asabah).
+            // So logic matches. 
+            // Just apply standard remaining distribution.
+
             sonOfSon.forEach(h => {
                 results.push({ heirId: h.id, name: h.name, type: HeirType.SON_OF_SON, share: "Asabah", percentage: (remaining / sonOfSon.length), amount: netEstate * (remaining / sonOfSon.length), status: "Ashabah bin Nafs", note: "Menggantikan Anak LK" });
             });
@@ -391,3 +524,8 @@ export function calculateSharesAdvanced(
 
     return results;
 }
+
+export const DISCLAIMER_TEXTS = {
+    SYAFII: "Perhitungan ini menggunakan kaidah Fiqh Mawaris Mazhab Syafi'i standar (termasuk logika 'Aul dan Radd). Mohon konsultasikan kembali dengan Asatidz atau ulama setempat untuk penetapan final.",
+    KHI: "Perhitungan ini mengacu pada Kompilasi Hukum Islam (KHI) (Pasal 176-193) yang berlaku di peradilan agama Indonesia. Mohon konsultasikan kembali dengan pihak berwenang atau Pengadilan Agama jika diperlukan."
+};

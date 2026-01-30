@@ -20,15 +20,18 @@ import { Info, CheckCircle2, AlertTriangle, ArrowRight } from "lucide-react";
 import { CalculationResult } from "@/lib/warisLogic";
 import { formatCurrency } from "@/lib/utils";
 import { IndividualHeir, HEIR_LABELS } from "@/lib/waris";
+import { GonoGiniBreakdown } from "./GonoGiniBreakdown";
 
 interface WarisResultProps {
     result: CalculationResult;
     heirs: IndividualHeir[];
     deceasedGender: "L" | "P";
     assetsRaw: { assets: string; tajhiz: string; debt: string; wasiat: string };
+    gonoGini?: number;
+    calculationMode?: "SYAFII" | "KHI";
 }
 
-export function WarisResult({ result, heirs, deceasedGender, assetsRaw }: WarisResultProps) {
+export function WarisResult({ result, heirs, deceasedGender, assetsRaw, gonoGini = 0, calculationMode = "SYAFII" }: WarisResultProps) {
     // Helper for initials (Print Only - kept for reference if needed, though mostly moved to PDF now)
     // We can keep it if the UI uses it, but the UI below doesn't seemingly use initials except in the table maybe?
     // Reviewing UI: It uses role and name.
@@ -94,6 +97,11 @@ export function WarisResult({ result, heirs, deceasedGender, assetsRaw }: WarisR
                 </AccordionItem>
             </Accordion>
 
+            {/* Gono-Gini Breakdown (Only for KHI) */}
+            {calculationMode === "KHI" && gonoGini > 0 && (
+                <GonoGiniBreakdown totalGonoGini={gonoGini} />
+            )}
+
             {/* Detailed Table */}
             <Card className="shadow-md border-primary/20 overflow-hidden">
                 <CardHeader className="bg-slate-50 border-b border-slate-100 py-4">
@@ -115,49 +123,70 @@ export function WarisResult({ result, heirs, deceasedGender, assetsRaw }: WarisR
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {result.finalHeirs.map((heir) => (
-                                    <TableRow key={heir.id} className={`${heir.finalAmount === 0 ? "bg-slate-50/50" : ""}`}>
-                                        <TableCell className="font-medium align-top px-6">
-                                            <div className="flex flex-col gap-1">
-                                                <span className="text-slate-900 font-semibold">{heir.role}</span>
+                                {result.finalHeirs.map((heir) => {
+                                    // Check if Spouse for KHI GonoGini Display
+                                    const isSpouse = heir.role === "Istri" || heir.role === "Suami";
+                                    const showGonoGini = isSpouse && calculationMode === "KHI" && gonoGini > 0;
+                                    const spouseGonoGiniShare = gonoGini * 0.5;
+                                    const totalReceived = heir.finalAmount + (showGonoGini ? spouseGonoGiniShare : 0);
 
-                                                {/* STATUS LABEL */}
-                                                <span className={`text-[10px] px-1.5 py-0.5 rounded border w-fit font-medium 
-                                                    ${heir.faraidStatus?.includes("Ashabah") ? "text-slate-500 italic border-slate-200 bg-slate-50" :
-                                                        heir.faraidStatus === "Mahjub (Terhalang)" ? "text-red-600 border-red-100 bg-red-50" :
-                                                            "text-emerald-700 border-emerald-100 bg-emerald-50"}`}>
-                                                    {heir.faraidStatus}
-                                                </span>
+                                    return (
+                                        <TableRow key={heir.id} className={`${heir.finalAmount === 0 ? "bg-slate-50/50" : ""}`}>
+                                            <TableCell className="font-medium align-top px-6">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-slate-900 font-semibold">{heir.role}</span>
 
-                                                {heir.note && (
-                                                    <div className="flex items-center gap-1 text-[10px] text-slate-400 font-normal mt-0.5">
-                                                        <span>ℹ️</span>
-                                                        <span>{heir.note}</span>
-                                                    </div>
+                                                    {/* STATUS LABEL */}
+                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded border w-fit font-medium 
+                                                        ${heir.faraidStatus?.includes("Ashabah") ? "text-slate-500 italic border-slate-200 bg-slate-50" :
+                                                            heir.faraidStatus === "Mahjub (Terhalang)" ? "text-red-600 border-red-100 bg-red-50" :
+                                                                "text-emerald-700 border-emerald-100 bg-emerald-50"}`}>
+                                                        {heir.faraidStatus}
+                                                    </span>
+
+                                                    {heir.note && (
+                                                        <div className="flex items-center gap-1 text-[10px] text-slate-400 font-normal mt-0.5">
+                                                            <span>ℹ️</span>
+                                                            <span>{heir.note}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-center whitespace-nowrap align-top pt-3">
+                                                {heir.baseShareText !== "Asabah" && heir.baseShareText !== "Mahjub" && heir.baseShareText !== "Dzawil Arham" ? (
+                                                    <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full bg-amber-400 text-white font-bold text-xs shadow-sm">
+                                                        {heir.baseShareText}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-sm text-slate-600 font-medium">
+                                                        {heir.baseShareText === "Asabah" ? "Asabah" : "-"}
+                                                    </span>
                                                 )}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-center whitespace-nowrap align-top pt-3">
-                                            {heir.baseShareText !== "Asabah" && heir.baseShareText !== "Mahjub" && heir.baseShareText !== "Dzawil Arham" ? (
-                                                <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full bg-amber-400 text-white font-bold text-xs shadow-sm">
-                                                    {heir.baseShareText}
+                                            </TableCell>
+                                            <TableCell className="text-center whitespace-nowrap align-top pt-3">
+                                                <span className="text-blue-600 font-medium text-sm">
+                                                    {heir.finalShareText}
                                                 </span>
-                                            ) : (
-                                                <span className="text-sm text-slate-600 font-medium">
-                                                    {heir.baseShareText === "Asabah" ? "Asabah" : "-"}
-                                                </span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-center whitespace-nowrap align-top pt-3">
-                                            <span className="text-blue-600 font-medium text-sm">
-                                                {heir.finalShareText}
-                                            </span>
-                                        </TableCell>
-                                        <TableCell className={`text-right font-bold whitespace-nowrap align-top pt-3 px-6 ${heir.finalAmount > 0 ? "text-slate-900" : "text-slate-400"}`}>
-                                            {formatCurrency(heir.finalAmount)}
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
+                                            </TableCell>
+                                            <TableCell className={`text-right font-bold whitespace-nowrap align-top pt-3 px-6 ${heir.finalAmount > 0 ? "text-slate-900" : "text-slate-400"}`}>
+                                                <div className="flex flex-col items-end">
+                                                    <span>{formatCurrency(heir.finalAmount)}</span>
+
+                                                    {showGonoGini && (
+                                                        <div className="mt-2 pt-2 border-t border-dashed border-slate-300 w-full text-right">
+                                                            <div className="text-[10px] text-slate-500 mb-0.5">
+                                                                + Hak Gono-Gini (50%): <span className="font-medium text-slate-700">{formatCurrency(spouseGonoGiniShare)}</span>
+                                                            </div>
+                                                            <div className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded inline-block">
+                                                                Total: {formatCurrency(totalReceived)}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
                                 <TableRow className="bg-slate-50/80 font-bold border-t border-slate-200">
                                     <TableCell colSpan={3} className="text-right text-slate-800 px-6">Total Terbagi</TableCell>
                                     <TableCell className="text-right text-emerald-600 text-base px-6">
@@ -225,6 +254,27 @@ export function WarisResult({ result, heirs, deceasedGender, assetsRaw }: WarisR
                 <Card className="shadow-md border-l-4 border-l-primary/50">
                     <CardContent className="p-0">
                         <div className="divide-y divide-slate-100">
+                            {/* KHI Gono-Gini Dalil */}
+                            {calculationMode === "KHI" && gonoGini > 0 && (
+                                <div className="p-4 hover:bg-blue-50/30 transition-colors border-l-4 border-l-blue-400 bg-blue-50/10">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <h4 className="font-bold text-blue-800">Harta Bersama (Gono-Gini) dalam KHI</h4>
+                                        </div>
+                                        <Badge variant="outline" className="text-xs font-mono bg-blue-50 text-blue-700 border-blue-200">
+                                            KHI Pasal 96
+                                        </Badge>
+                                    </div>
+                                    <p className="text-sm text-slate-700 italic mb-2">
+                                        "Apabila terjadi cerai mati, maka separoh harta bersama menjadi hak pasangan yang hidup lebih lama."
+                                    </p>
+                                    <div className="mt-2 ml-4 border-l-2 border-slate-200 pl-3">
+                                        <p className="text-xs text-slate-600 leading-relaxed">
+                                            <span className="font-semibold text-slate-700">Penjelasan:</span> Harta yang diperoleh selama pernikahan adalah milik bersama. Sebelum waris dibagikan, 50% dari harta ini harus diserahkan kepada suami/istri yang ditinggalkan sebagai hak mutlaknya, bukan sebagai warisan.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                             {result.finalHeirs.map((heir, idx) => (
                                 <div key={idx} className="p-4 hover:bg-slate-50 transition-colors">
                                     <div className="flex justify-between items-start mb-2">

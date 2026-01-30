@@ -28,16 +28,43 @@ export default async function ProgramPage({ params }: Props) {
     }
 
     const settings = await prisma.settings.findMany();
-    const qrisImage = settings.find((s) => s.key === "qrisImage")?.value;
-    const bankAccount = settings.find((s) => s.key === "bankAccount")?.value;
+    const settingsMap = settings.reduce((acc: Record<string, string>, curr: { key: string; value: string }) => {
+        acc[curr.key] = curr.value;
+        return acc;
+    }, {} as Record<string, string>);
+
+    const qrisImage = settingsMap["qrisImage"];
+    const bankAccount = settingsMap["bankAccount"];
+
+    // Explicit string comparison
+    const isOfflinePaymentActive = settingsMap["payment_offline_active"] === "true";
+
+    // Online active by default ONLY if key is missing. If key exists, respect its value.
+    const isOnlineSetting = settingsMap["payment_online_active"];
+    const isOnlinePaymentActive = isOnlineSetting === undefined ? true : isOnlineSetting === "true";
+
+    console.log(`[ProgramPage] Settings for ${slug}:`, JSON.stringify(settingsMap, null, 2));
+    console.log(`[ProgramPage] Derived: Online=${isOnlinePaymentActive}, Offline=${isOfflinePaymentActive}`);
+
+    // Aggregation for verified transactions
+    const lastReset = program.lastResetAt || new Date(0);
+
+    const verifiedAgg = await prisma.transaction.aggregate({
+        where: {
+            menuItemId: program.id,
+            status: "VERIFIED",
+            createdAt: { gt: lastReset }
+        },
+        _sum: { amount: true }
+    });
+
+    const currentAmount = Number(verifiedAgg._sum.amount || 0);
 
     const serializedProgram = {
         ...program,
         targetAmount: program.targetAmount ? Number(program.targetAmount) : 0,
-        currentAmount: program.currentAmount ? Number(program.currentAmount) : 0,
+        currentAmount: currentAmount,
     };
-
-    const totalDonors = program._count.transactions;
 
     if (program.template === "WAKAF") {
         return (
@@ -45,7 +72,8 @@ export default async function ProgramPage({ params }: Props) {
                 program={serializedProgram}
                 qrisImage={qrisImage}
                 bankAccount={bankAccount}
-                totalDonors={totalDonors}
+                isOfflinePaymentActive={isOfflinePaymentActive}
+                isOnlinePaymentActive={isOnlinePaymentActive}
             />
         );
     }
@@ -56,7 +84,8 @@ export default async function ProgramPage({ params }: Props) {
                 program={serializedProgram}
                 qrisImage={qrisImage}
                 bankAccount={bankAccount}
-                totalDonors={totalDonors}
+                isOfflinePaymentActive={isOfflinePaymentActive}
+                isOnlinePaymentActive={isOnlinePaymentActive}
             />
         );
     }

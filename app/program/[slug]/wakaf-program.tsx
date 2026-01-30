@@ -10,15 +10,21 @@ import { PaymentDrawer } from "@/components/PaymentDrawer";
 import { ShareButton } from "@/components/ShareButton";
 
 interface ProgramProps {
-    program: any; // Typed as any for flexibility with Prisma object
+    program: any;
     qrisImage?: string;
     bankAccount?: string;
-    totalDonors?: number;
+    isOfflinePaymentActive?: boolean;
+    isOnlinePaymentActive?: boolean;
 }
 
-export default function WakafProgram({ program, qrisImage, bankAccount, totalDonors = 0 }: ProgramProps) {
+export default function WakafProgram({
+    program,
+    qrisImage,
+    bankAccount,
+    isOfflinePaymentActive = false,
+    isOnlinePaymentActive = true
+}: ProgramProps) {
     const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-    const [donorCount, setDonorCount] = useState(totalDonors);
 
     // Data extraction
     const targetAmount = Number(program.targetAmount) || 0;
@@ -35,7 +41,6 @@ export default function WakafProgram({ program, qrisImage, bankAccount, totalDon
         // Optimistic update if needed, though real data comes from server refresh usually
         // For now, we just close the drawer
         setIsPaymentOpen(false);
-        setDonorCount(prev => prev + 1);
     };
 
     return (
@@ -117,7 +122,6 @@ export default function WakafProgram({ program, qrisImage, bankAccount, totalDon
                                     <span suppressHydrationWarning className="text-slate-500">
                                         {formattedProgress}% tercapai
                                     </span>
-                                    <span className="text-slate-500 font-medium">{donorCount} Donatur</span>
                                 </div>
                             </div>
                         </div>
@@ -176,6 +180,8 @@ export default function WakafProgram({ program, qrisImage, bankAccount, totalDon
                 title={`Donasi: ${program.pageTitle}`}
                 suggestedAmounts={[10000, 20000, 50000, 100000, 200000, 500000]}
                 onSuccess={handlePaymentSuccess}
+                isOfflinePaymentActive={isOfflinePaymentActive}
+                isOnlinePaymentActive={isOnlinePaymentActive}
             />
         </main>
     );

@@ -5,23 +5,41 @@ import { ArrowLeft, Share2, Sunrise, Heart } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { PaymentDrawer } from "@/components/PaymentDrawer";
+import { useDonationStats } from "@/components/DonationProgress";
+import { useEffect } from "react";
 
 interface SedekahClientProps {
     qrisImage?: string;
     bankAccount?: string;
     totalDonations?: number;
-    totalDonors?: number;
     programId?: string;
+    isOfflinePaymentActive?: boolean;
+    isOnlinePaymentActive?: boolean;
 }
 
-export default function SedekahClient({ qrisImage, bankAccount, totalDonations = 0, totalDonors = 0, programId }: SedekahClientProps) {
+export default function SedekahClient({
+    qrisImage,
+    bankAccount,
+    totalDonations = 0,
+    programId,
+    isOfflinePaymentActive = false,
+    isOnlinePaymentActive = true
+}: SedekahClientProps) {
     const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+
+    // Default to mix but since undone, just totalDonations
     const [raisedAmount, setRaisedAmount] = useState(totalDonations);
-    const [donorCount, setDonorCount] = useState(totalDonors);
+
+    const { data } = useDonationStats(programId || "");
+
+    useEffect(() => {
+        if (data && typeof data.collected === "number") {
+            setRaisedAmount(data.collected);
+        }
+    }, [data]);
 
     const handlePaymentSuccess = (amount: number) => {
         setRaisedAmount((prev) => prev + amount);
-        setDonorCount((prev) => prev + 1);
     };
 
     return (
@@ -55,9 +73,6 @@ export default function SedekahClient({ qrisImage, bankAccount, totalDonations =
                             <span className="font-bold text-white text-sm">
                                 {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(raisedAmount)}
                             </span>
-                        </div>
-                        <div className="text-xs text-orange-100/80">
-                            dari <strong>{donorCount}</strong> donatur subuh
                         </div>
                     </div>
 
@@ -136,6 +151,8 @@ export default function SedekahClient({ qrisImage, bankAccount, totalDonations =
                 suggestedAmounts={[10000, 20000, 50000, 100000]} // Smaller amounts for daily routine
                 onSuccess={handlePaymentSuccess}
                 programType="menuItem"
+                isOfflinePaymentActive={isOfflinePaymentActive}
+                isOnlinePaymentActive={isOnlinePaymentActive}
             />
         </main>
     );

@@ -9,12 +9,15 @@ export async function updateSettings(formData: FormData) {
         const majlisAddress = formData.get("majlisAddress") as string;
         const majlisPhone = formData.get("majlisPhone") as string;
         const bankAccount = formData.get("bankAccount") as string;
-        // Image handling for QRIS would go here (upload to S3/Cloudinary)
-        // For MVP we just store strings if provided, or ignore
+        const qrisImage = formData.get("qrisImage") as string;
+
+        // Payment Settings
+        const payment_online_active = formData.get("payment_online_active") as string;
+        const payment_offline_active = formData.get("payment_offline_active") as string;
 
         // Helper to upsert
         const upsertSetting = async (key: string, value: string) => {
-            if (!value) return;
+            if (value === undefined || value === null) return;
             await prisma.settings.upsert({
                 where: { key },
                 update: { value },
@@ -26,6 +29,9 @@ export async function updateSettings(formData: FormData) {
         await upsertSetting("majlisAddress", majlisAddress);
         await upsertSetting("majlisPhone", majlisPhone);
         await upsertSetting("bankAccount", bankAccount);
+        await upsertSetting("qrisImage", qrisImage);
+        await upsertSetting("payment_online_active", payment_online_active);
+        await upsertSetting("payment_offline_active", payment_offline_active);
 
         const runningText_content = formData.get("runningText_content") as string;
         const runningText_speed = formData.get("runningText_speed") as string;
@@ -46,8 +52,7 @@ export async function updateSettings(formData: FormData) {
         await upsertSetting("contact_whatsapp", contact_whatsapp);
         await upsertSetting("contact_instagram", contact_instagram);
 
-        revalidatePath("/admin/settings");
-        revalidatePath("/"); // Update home if these settings are used there
+        revalidatePath("/", "layout");
         return { success: true };
 
     } catch (error) {

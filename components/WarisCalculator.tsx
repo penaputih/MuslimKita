@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +31,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Calculator, AlertCircle, Plus, Trash2, UserPlus, Users, Printer } from "lucide-react";
-import { calculateNetEstate, calculateSharesAdvanced, Gender, HeirType, HEIR_LABELS, IndividualHeir } from "@/lib/waris";
+import { calculateNetEstate, calculateSharesAdvanced, Gender, HeirType, HEIR_LABELS, IndividualHeir, DISCLAIMER_TEXTS } from "@/lib/waris";
 import { formatCurrency } from "@/lib/utils";
 
 
@@ -45,16 +45,25 @@ import { Download } from "lucide-react";
 
 export function WarisCalculator() {
     const { toast } = useToast();
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     // Inputs - Assets
     const [assets, setAssets] = useState<string>("");
     const [tajhiz, setTajhiz] = useState<string>("");
     const [debt, setDebt] = useState<string>("");
     const [wasiat, setWasiat] = useState<string>("");
+    const [gonoGini, setGonoGini] = useState<string>("");
 
     // Inputs - Heirs
     const [deceasedGender, setDeceasedGender] = useState<Gender>("L");
     const [heirs, setHeirs] = useState<IndividualHeir[]>([]);
+
+    // Calculation Mode
+    const [calculationMode, setCalculationMode] = useState<"SYAFII" | "KHI">("SYAFII");
 
     // Dialog State
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -66,6 +75,8 @@ export function WarisCalculator() {
         if (!val) return "";
         return new Intl.NumberFormat("id-ID").format(parseInt(val.replace(/\D/g, "")));
     };
+
+    const formGonoGini = parseInt(gonoGini.replace(/\D/g, "") || "0");
 
     const changeDeceasedGender = (newGender: Gender) => {
         if (newGender === deceasedGender) return;
@@ -111,20 +122,54 @@ export function WarisCalculator() {
         setHeirs(heirs.filter(h => h.id !== id));
     };
 
+    const handleGonoGiniChange = (val: string) => {
+        // Strip non-digits
+        const cleaned = val.replace(/\D/g, "");
+        if (!cleaned) {
+            setGonoGini("");
+            return;
+        }
+
+        const numVal = parseInt(cleaned);
+        const numAssets = parseInt(assets.replace(/\D/g, "") || "0");
+
+        if (numVal > numAssets) {
+            toast({
+                variant: "destructive",
+                title: "Input Tidak Valid",
+                description: "Nilai Harta Gono-Gini tidak boleh melebihi Total Aset.",
+            });
+            return;
+        }
+
+        setGonoGini(val);
+    };
+
     // Calculate Smart Logic
     const smartResult = useMemo(() => {
         const numAssets = parseInt(assets.replace(/\D/g, "") || "0");
         const numTajhiz = parseInt(tajhiz.replace(/\D/g, "") || "0");
         const numDebt = parseInt(debt.replace(/\D/g, "") || "0");
         const numWasiat = parseInt(wasiat.replace(/\D/g, "") || "0");
+        const numGonoGini = parseInt(gonoGini.replace(/\D/g, "") || "0");
 
-        const { net, note: wasiatNote } = calculateNetEstate(numAssets, numTajhiz, numDebt, numWasiat);
+        // [LOGIC UPDATE] Strict implementation of KHI Formula
+        // 1. Gono Gini Check
+        // Spouse Share = 50% of Joint Property (Taken OUT of estate)
+        // Clean Estate (Tirkah) = Assets - SpouseShare - Debt - Tajhiz
+        // Net Estate = Tirkah - Wasiat
 
-        // Get Base Shares from old logic first (to determine who gets what fraction initially)
-        // We reuse the existing 'calculateSharesAdvanced' to get the Furudh (Base Shares)
-        // Then pass those to our new 'calculateFaraid' logic for Aul/Radd handling.
+        const { net, spouseShare } = calculateNetEstate(
+            numAssets,
+            numTajhiz,
+            numDebt,
+            numWasiat,
+            numGonoGini,
+            calculationMode
+        );
 
-        const initialShares = calculateSharesAdvanced(heirs, net, deceasedGender);
+        // 2. Base Shares (Furudh) using Net Estate
+        const initialShares = calculateSharesAdvanced(heirs, net, deceasedGender, calculationMode);
 
         // Transform to new Heir structure
         const mappedHeirs: Heir[] = initialShares
@@ -138,10 +183,22 @@ export function WarisCalculator() {
                 isSpouse: h.type === HeirType.HUSBAND || h.type === HeirType.WIFE
             }));
 
-        if (mappedHeirs.length === 0) return null;
+        // Allow result even if no heirs (so we can see Net Estate)
+        // If no heirs, we just return empty distribution but valid totalHarta.
+        if (mappedHeirs.length === 0) {
+            return {
+                finalHeirs: [],
+                status: "Normal",
+                totalHarta: net,
+                explanationSteps: ["Belum ada ahli waris"],
+                asalMasalahInitial: 0,
+                asalMasalahFinal: 0,
+                neraca: { totalJatahAwal: 0, selisih: 0, statusNeraca: "PAS" }
+            } as any; // Cast to avoid strict type error manually constructing result
+        }
 
         return calculateFaraid(mappedHeirs, net);
-    }, [assets, tajhiz, debt, wasiat, deceasedGender, heirs]);
+    }, [assets, tajhiz, debt, wasiat, gonoGini, deceasedGender, heirs, calculationMode]);
 
     // Grouping for Heir Type Select
     const heirOptions = Object.entries(HEIR_LABELS).filter(([key]) => {
@@ -186,14 +243,15 @@ export function WarisCalculator() {
 
             {/* Top Actions - PDF Download */}
             <div className="flex justify-end print:hidden">
-                {smartResult ? (
+                {isClient && smartResult && heirs.length > 0 ? (
                     <PDFDownloadLink
                         document={
                             <WarisPdfDocument
-                                data={{ assets, tajhiz, debt, wasiat }}
+                                data={{ assets, tajhiz, debt, wasiat, gonoGini }}
                                 heirs={heirs}
                                 result={smartResult}
                                 deceasedGender={deceasedGender}
+                                calculationMode={calculationMode}
                             />
                         }
                         fileName={`Laporan_Waris_${new Date().toISOString().split('T')[0]}.pdf`}
@@ -212,6 +270,41 @@ export function WarisCalculator() {
                     </Button>
                 )}
             </div>
+
+            {/* Dual Mode Calculator */}
+            <div className="bg-slate-50 dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+                <Label>Metode Perhitungan (Mazhab)</Label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-white dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
+                    <button
+                        onClick={() => setCalculationMode("SYAFII")}
+                        className={`py-2 px-4 rounded-md text-sm font-medium transition-all ${calculationMode === "SYAFII"
+                            ? "bg-teal-600 text-white shadow-sm"
+                            : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                            }`}
+                    >
+                        Mazhab Syafi'i
+                    </button>
+                    <button
+                        onClick={() => setCalculationMode("KHI")}
+                        className={`py-2 px-4 rounded-md text-sm font-medium transition-all ${calculationMode === "KHI"
+                            ? "bg-teal-600 text-white shadow-sm"
+                            : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                            }`}
+                    >
+                        KHI (Indonesia)
+                    </button>
+                </div>
+
+                {calculationMode === "KHI" && (
+                    <div className="flex gap-2 text-xs text-blue-600 bg-blue-50 p-2 rounded-lg border border-blue-100">
+                        <AlertCircle className="size-4 shrink-0" />
+                        <p>
+                            KHI menerapkan <strong>Pasal 185</strong> tentang Ahli Waris Pengganti (Cucu menggantikan orang tua yang meninggal lebih dulu) & Wasiat Wajibah untuk Anak Angkat.
+                        </p>
+                    </div>
+                )}
+            </div>
+
 
             {/* 1. Harta Tirkah - Hidden on Print now because we use Template */}
             <div className="print:hidden space-y-6">
@@ -237,6 +330,51 @@ export function WarisCalculator() {
                                     />
                                 </div>
                             </div>
+
+                            {/* Input Harta Gono-Gini (KHI Specific but shown always or conditionally? User prompt says "Input Field" implies always or visible. Let's show it always but maybe disable/fade if Syafi'i? Or just show it.) */}
+                            {/* Requirement says for KHI Mode specifically. But usually apps let you input it. */}
+                            {/* "The user wants to add a toggle... IF mode === SYAFII: Treat as 0" */}
+                            <div className={`space-y-2 transition-all ${calculationMode === "SYAFII" ? "opacity-50" : ""}`}>
+                                <div className="flex items-center gap-2">
+                                    <Label>Harta Bersama (Gono-Gini)</Label>
+                                    {calculationMode === "SYAFII" && <Badge variant="outline" className="text-[10px]">Diabaikan di Syafi'i</Badge>}
+                                </div>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">Rp</span>
+                                    <Input
+                                        value={format(gonoGini)}
+                                        onChange={(e) => handleGonoGiniChange(e.target.value)}
+                                        placeholder="0"
+                                        className="pl-10"
+                                        disabled={calculationMode === "SYAFII"}
+                                    />
+                                </div>
+                                <p className="text-[10px] text-muted-foreground">
+                                    {calculationMode === "KHI"
+                                        ? "Akan dibagi 50% untuk pasangan dulu sebelum waris."
+                                        : "Pilih mode KHI untuk mengaktifkan fitur ini."}
+                                </p>
+                            </div>
+
+                            {/* KHI Gono-Gini Summary */}
+                            {calculationMode === "KHI" && formGonoGini > 0 && (
+                                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 space-y-2 text-sm">
+                                    <div className="flex items-center gap-2 font-medium text-blue-700">
+                                        <AlertCircle className="size-4" />
+                                        <span>Pemisahan Harta Bersama (KHI Pasal 96)</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 text-xs">
+                                        <div>
+                                            <p className="text-muted-foreground">Hak Pasangan (50%)</p>
+                                            <p className="font-semibold text-blue-700">{formatCurrency(formGonoGini * 0.5)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">Masuk Warisan (50%)</p>
+                                            <p className="font-semibold text-blue-700">{formatCurrency(formGonoGini * 0.5)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Biaya Tajhiz</Label>
@@ -398,6 +536,8 @@ export function WarisCalculator() {
                         heirs={heirs}
                         deceasedGender={deceasedGender}
                         assetsRaw={{ assets, tajhiz, debt, wasiat }}
+                        gonoGini={formGonoGini}
+                        calculationMode={calculationMode}
                     />
                 ) : (
                     <div className="p-8 text-center text-muted-foreground border-2 border-dashed rounded-xl">
@@ -409,8 +549,7 @@ export function WarisCalculator() {
                 <div className="flex items-start gap-3 p-4 bg-amber-50 text-amber-800 rounded-lg text-sm print:bg-transparent print:text-gray-600 print:border print:border-gray-200">
                     <AlertCircle className="size-5 shrink-0 mt-0.5" />
                     <p>
-                        <strong>Disclaimer:</strong> Perhitungan ini menggunakan kaidah Fiqh Mawaris Mazhab Syafi&apos;i standar (termasuk logika 'Aul dan Radd).
-                        Mohon konsultasikan kembali dengan Asatidz atau ulama setempat untuk penetapan final dan eksekusi pembagian.
+                        <strong>Disclaimer:</strong> {DISCLAIMER_TEXTS[calculationMode]}
                     </p>
                 </div>
             </div>

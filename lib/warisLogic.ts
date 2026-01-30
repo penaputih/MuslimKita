@@ -351,7 +351,46 @@ export function calculateFaraid(heirs: Heir[], totalHarta: number): CalculationR
             const remainder = 1 - totalShare;
             steps.push(`Total Ashabul Furudh: ${totalShare.toFixed(2)}. Sisa ${remainder.toFixed(2)} untuk Asabah.`);
 
-            const asabahShare = remainder / asabahHeirs.length;
+            steps.push(`Total Ashabul Furudh: ${totalShare.toFixed(2)}. Sisa ${remainder.toFixed(2)} untuk Asabah.`);
+
+            // [FIXED] Weighted Distribution for Asabah
+            let TotalPoints = 0;
+            const ratedHeirs = asabahHeirs.map(h => {
+                let weight = 1; // Default
+                const roleLower = h.role.toLowerCase();
+
+                // Weight 2 for Males
+                if (
+                    roleLower.includes("laki") ||
+                    roleLower.includes("suami") || // Usually Furudh but safe check
+                    roleLower.includes("ayah") ||
+                    roleLower.includes("kakek") ||
+                    roleLower.includes("paman") ||
+                    roleLower.includes("cucu lk") ||
+                    roleLower.includes("anak lk") ||
+                    roleLower.includes("saudara lk") ||
+                    roleLower.includes("sdr lk")
+                ) {
+                    weight = 2;
+                }
+
+                // EXCEPTIONS:
+                // 1. Father/Grandfather usually take ALL remaining if alone as Asabah bin Nafs.
+                // 2. But if mixed with children? Simple weighting works for Son/Daughter.
+                // 3. What if Father + Son? Father gets 1/6 (Furudh), Son takes Asabah.
+                //    So Father wouldn't be in 'asabahHeirs' list here? 
+                //    Actually Father can be "1/6 + Sisa". 
+                //    If "1/6 + Sisa", his shareText includes "Asabah".
+                //    But Son blocks Father from Asabah.
+                //    So usually Asabah group is homogeneous (Sons+Daughters) OR (Brothers+Sisters) OR (Just Father).
+
+                // For simplicity & robustness: Use 2:1 for Gender.
+
+                TotalPoints += weight;
+                return { ...h, weight };
+            });
+
+            if (TotalPoints === 0) TotalPoints = 1; // Prevent div/0
 
             finalHeirsResult = [
                 ...furudhHeirs.map(h => ({
@@ -361,13 +400,17 @@ export function calculateFaraid(heirs: Heir[], totalHarta: number): CalculationR
                     finalAmount: h.shareValue * totalHarta,
                     note: "Sesuai Furudh"
                 })),
-                ...asabahHeirs.map(h => ({
-                    ...h,
-                    finalPercentage: asabahShare,
-                    finalShareText: "Sisa",
-                    finalAmount: asabahShare * totalHarta,
-                    note: "Asabah (Sisa)"
-                }))
+                ...ratedHeirs.map(h => {
+                    const myPortion = h.weight / TotalPoints;
+                    const myShare = remainder * myPortion;
+                    return {
+                        ...h,
+                        finalPercentage: myShare,
+                        finalShareText: `Ashabah (${h.weight} Bagian)`,
+                        finalAmount: myShare * totalHarta,
+                        note: "Asabah (Sisa)"
+                    };
+                })
             ];
         }
     } else {

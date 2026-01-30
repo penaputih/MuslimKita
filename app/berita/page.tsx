@@ -15,7 +15,7 @@ export default async function BeritaPage() {
 
     return (
         <main className="min-h-screen bg-neutral-50 dark:bg-slate-950 pb-28">
-            <Header user={session?.user} />
+            <Header user={session?.user} showBack={true} />
 
             <div className="px-6 pt-6 space-y-6">
                 <div>
@@ -29,7 +29,7 @@ export default async function BeritaPage() {
                             Belum ada berita yang diterbitkan.
                         </div>
                     )}
-                    {news.map((item) => {
+                    {news.map((item: any) => {
                         const isUrl = item.image.startsWith('http') || item.image.startsWith('/');
                         const isBase64 = item.image.startsWith('data:');
                         const bgImage = isUrl || isBase64 ? `url(${item.image})` : undefined;

@@ -141,6 +141,101 @@ export default function SettingsClient({ initialData }: { initialData: SettingsD
                     </CardFooter>
                 </Card>
 
+                {/* Pembayaran & Donasi */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Pembayaran & Donasi</CardTitle>
+                        <CardDescription>Konfigurasi metode pembayaran dan informasi rekening.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex flex-col space-y-2">
+                                <Label htmlFor="payment_online_active">Pembayaran Online (Midtrans)</Label>
+                                <select
+                                    id="payment_online_active"
+                                    name="payment_online_active"
+                                    defaultValue={initialData.payment_online_active || "true"}
+                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="true">Aktif</option>
+                                    <option value="false">Tidak Aktif</option>
+                                </select>
+                                <p className="text-[10px] text-muted-foreground">Otomatisasi pembayaran via QRIS, E-Wallet, VA.</p>
+                            </div>
+                            <div className="flex flex-col space-y-2">
+                                <Label htmlFor="payment_offline_active">Pembayaran Offline / Manual</Label>
+                                <select
+                                    id="payment_offline_active"
+                                    name="payment_offline_active"
+                                    defaultValue={initialData.payment_offline_active || "false"}
+                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="true">Aktif</option>
+                                    <option value="false">Tidak Aktif</option>
+                                </select>
+                                <p className="text-[10px] text-muted-foreground">Transfer manual ke rekening atau QRIS statis.</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="qrisImage">Gambar QRIS (Statis)</Label>
+                            {initialData.qrisImage && (
+                                <div className="mb-2">
+                                    <img src={initialData.qrisImage} alt="QRIS Preview" className="h-32 object-contain border rounded-md p-2" />
+                                </div>
+                            )}
+                            <Input
+                                id="qris_file"
+                                type="file"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        const formData = new FormData();
+                                        formData.append("file", file);
+                                        formData.append("folder", "settings");
+
+                                        const loadingToast = document.createElement("div"); // Placeholder for toast logic if needed
+                                        // Simple alert for now as specific toast lib might vary
+
+                                        try {
+                                            const res = await fetch("/api/upload", {
+                                                method: "POST",
+                                                body: formData
+                                            });
+                                            const data = await res.json();
+                                            if (data.success) {
+                                                // Create a hidden input to hold the value
+                                                const input = document.getElementById("qrisImage") as HTMLInputElement;
+                                                if (input) input.value = data.url;
+                                                alert("Gambar berhasil diupload! Klik Simpan Perubahan.");
+                                            } else {
+                                                alert("Gagal upload gambar.");
+                                            }
+                                        } catch (err) {
+                                            console.error(err);
+                                            alert("Terjadi kesalahan saat upload.");
+                                        }
+                                    }
+                                }}
+                            />
+                            <Input id="qrisImage" name="qrisImage" defaultValue={initialData.qrisImage || ""} placeholder="URL Gambar..." className="hidden" />
+                            <p className="text-xs text-muted-foreground">Upload gambar QR Code dari galeri.</p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="bankAccount">Informasi Rekening Bank</Label>
+                            <Textarea id="bankAccount" name="bankAccount" defaultValue={initialData.bankAccount || ""} placeholder="Bank BSI 1234567890 a.n Yayasan..." rows={4} />
+                        </div>
+                    </CardContent>
+                    <CardFooter className="border-t px-6 py-4">
+                        <Button type="submit" disabled={isPending}>
+                            {isPending && <Loader2 className="animate-spin mr-2 h-4 w-4" />}
+                            Simpan Perubahan
+                        </Button>
+                    </CardFooter>
+                </Card>
+
                 {/* Running Text Notification */}
                 <Card>
                     <CardHeader>

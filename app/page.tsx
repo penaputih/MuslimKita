@@ -12,12 +12,13 @@ import { getPrayerTimes } from "@/lib/api";
 import { RunningText } from "@/components/RunningText";
 import { getSession } from "@/lib/auth";
 import { NewsList } from "@/components/NewsList";
+import { PullToRefreshWrapper } from "@/components/PullToRefreshWrapper";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const session = await getSession();
-  // const prayerData = await getPrayerTimes("Bandung"); // Unused now
+  // ... (rest of data fetching methods remain same)
 
   const campaignsData = await prisma.campaign.findMany({
     orderBy: { createdAt: "desc" },
@@ -75,49 +76,49 @@ export default async function Home() {
   const isZakatActive = zakatWidgetActive?.value === "true";
 
   return (
-    <main className="min-h-screen bg-neutral-50 dark:bg-slate-950 pb-28">
-      {/* Sticky Header Group */}
-      <div className="sticky top-0 z-40 w-full bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm">
-        <Header user={session?.user} />
-        <RunningText />
-      </div>
-
-      {/* 2. Prayer Widget (Moved to Top) */}
-      {isPrayerActive && (
-        <div className="px-4 mt-6 mb-8">
-          <PrayerWidget />
+    <PullToRefreshWrapper>
+      <main className="min-h-screen bg-neutral-50 dark:bg-slate-950 pb-28">
+        {/* Sticky Header Group */}
+        <div className="sticky top-0 z-40 w-full bg-white/95 dark:bg-slate-950/95 backdrop-blur-sm">
+          <Header user={session?.user} />
+          <RunningText />
         </div>
-      )}
 
-      {/* 3. Quick Action Grid */}
-      <QuickActionGrid />
+        {/* 2. Prayer Widget (Moved to Top) */}
+        {isPrayerActive && (
+          <div className="px-4 mt-6 mb-8">
+            <PrayerWidget />
+          </div>
+        )}
 
-      {/* Update Section (Hero Carousel + News) */}
-      <section className="mb-6">
-        <h2 className="px-4 text-lg font-bold text-slate-800 dark:text-slate-100 mb-3">
-          Update
-        </h2>
-        <HeroCarousel slides={activeBanners} />
-        <NewsList news={latestNews} />
-      </section>
+        {/* 3. Quick Action Grid */}
+        <QuickActionGrid />
 
+        {/* Update Section (Hero Carousel + News) */}
+        <section className="mb-6">
+          <h2 className="px-4 text-lg font-bold text-slate-800 dark:text-slate-100 mb-3">
+            Update
+          </h2>
+          <HeroCarousel slides={activeBanners} />
+          <NewsList news={latestNews} />
+        </section>
 
+        {/* Daily Wisdom (Doa) */}
+        {isWisdomActive && (
+          <div className="px-4 mb-6">
+            <DailyWisdom />
+          </div>
+        )}
 
-      {/* Daily Wisdom (Doa) */}
-      {isWisdomActive && (
-        <div className="px-4 mb-6">
-          <DailyWisdom />
-        </div>
-      )}
+        {/* Hadith Widget (Database-driven) */}
+        <HadithWidget hadiths={hadiths} isActive={isHadithActive} />
 
-      {/* Hadith Widget (Database-driven) */}
-      <HadithWidget hadiths={hadiths} isActive={isHadithActive} />
+        {/* 4. Featured Campaigns */}
+        <FeaturedCampaigns campaigns={campaigns} />
 
-      {/* 4. Featured Campaigns */}
-      <FeaturedCampaigns campaigns={campaigns} />
-
-      {/* Navigation */}
-      <FloatingBottomNav />
-    </main>
+        {/* Navigation */}
+        <FloatingBottomNav />
+      </main>
+    </PullToRefreshWrapper>
   );
 }

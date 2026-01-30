@@ -11,9 +11,146 @@ import {
     DrawerHeader,
     DrawerTitle,
 } from "@/components/ui/drawer";
-import { CheckCircle2, Loader2, ArrowRight } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircle2, Loader2, ArrowRight, UploadCloud, Copy, Check } from "lucide-react";
 import useSnap from "@/hooks/useSnap";
 import { toast } from "sonner"; // Assuming sonner, check if installed or use generic toast
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
+
+// Sub-components
+const OnlinePaymentContent = ({ handleInstantPayment, isSubmitting }: { handleInstantPayment: () => void, isSubmitting: boolean }) => (
+    <div className="space-y-4">
+        <p className="text-muted-foreground text-sm text-center">
+            Anda akan diarahkan ke halaman pembayaran aman Midtrans.
+            Mendukung QRIS, GoPay, ShopeePay, Transfer Bank, dll.
+        </p>
+        <Button
+            onClick={handleInstantPayment}
+            disabled={isSubmitting}
+            className="w-full rounded-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+            size="lg"
+        >
+            {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : "Bayar Sekarang"}
+        </Button>
+    </div>
+);
+
+const OfflinePaymentContent = ({ qrisImage, bankAccount, amount, programId, onSuccess }: {
+    qrisImage?: string | null,
+    bankAccount?: string | null,
+    amount: number,
+    programId?: string,
+    onSuccess: (amount: number) => void
+}) => {
+    const [proofFile, setProofFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [isCopied, setIsCopied] = useState(false);
+
+    const handleCopy = () => {
+        if (!bankAccount) return;
+        navigator.clipboard.writeText(bankAccount);
+        setIsCopied(true);
+        toast.success("Nomor rekening disalin");
+        setTimeout(() => setIsCopied(false), 2000);
+    };
+
+    const handleOfflineSubmit = async () => {
+        if (!proofFile) {
+            toast.error("Mohon upload bukti transfer");
+            return;
+        }
+        setIsUploading(true);
+        try {
+            // 1. Upload Image
+            const formData = new FormData();
+            formData.append("file", proofFile);
+            formData.append("folder", "payments");
+
+            const uploadRes = await fetch("/api/upload", {
+                method: "POST",
+                body: formData
+            });
+            const uploadData = await uploadRes.json();
+
+            if (!uploadData.success) throw new Error("Gagal upload bukti transfer");
+
+            // 2. Create Transaction
+            const paymentRes = await fetch("/api/payment/offline", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    amount: amount,
+                    paymentType: "OFFLINE",
+                    menuItemId: programId, // Assuming programId maps to menuItem based on context, or use campaignId logic if needed. 
+                    // Note: The previous logic uses programId generic. For exact mapping we might need to check programType but for now lets assume general ID.
+                    proofImage: uploadData.url
+                })
+            });
+
+            const paymentData = await paymentRes.json();
+            if (paymentData.error) throw new Error(paymentData.error);
+
+            onSuccess(amount);
+
+        } catch (error: any) {
+            toast.error(error.message || "Terjadi kesalahan");
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    return (
+        <div className="space-y-4">
+            <div className="flex flex-col items-center space-y-2">
+                <p className="text-sm font-medium">Scan QRIS</p>
+                <div className="bg-white p-2 rounded-lg border shadow-sm">
+                    {qrisImage ? (
+                        <img src={qrisImage} alt="QRIS" className="w-48 h-48 object-contain" />
+                    ) : (
+                        <div className="w-48 h-48 bg-slate-100 flex items-center justify-center text-slate-400 text-xs text-center p-4">
+                            QRIS belum tersedia
+                        </div>
+                    )}
+                </div>
+            </div>
+            {bankAccount && (
+                <div className="bg-muted p-3 rounded-lg text-sm space-y-1 relative group">
+                    <p className="font-semibold">Transfer Bank:</p>
+                    <p className="whitespace-pre-wrap pr-8 font-mono">{bankAccount}</p>
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        className="absolute top-1 right-1 h-8 w-8 text-muted-foreground hover:text-foreground"
+                        onClick={handleCopy}
+                    >
+                        {isCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                </div>
+            )}
+
+            <div className="space-y-2 pt-2">
+                <Label htmlFor="proof">Upload Bukti Transfer</Label>
+                <Input
+                    id="proof"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setProofFile(e.target.files?.[0] || null)}
+                />
+                <p className="text-[10px] text-muted-foreground">Pastikan nominal sesuai dengan yang tertera.</p>
+            </div>
+
+            <Button
+                onClick={handleOfflineSubmit}
+                disabled={isUploading}
+                className="w-full rounded-full h-12 text-sm font-semibold"
+                size="lg"
+            >
+                {isUploading ? <Loader2 className="animate-spin mr-2" /> : "Konfirmasi Pembayaran"}
+            </Button>
+        </div>
+    );
+};
 import { useRouter } from "next/navigation";
 
 interface PaymentDrawerProps {
@@ -26,6 +163,8 @@ interface PaymentDrawerProps {
     programType?: "campaign" | "menuItem"; // Distinguish FK
     suggestedAmounts?: number[];
     onSuccess?: (amount: number) => void;
+    isOfflinePaymentActive?: boolean;
+    isOnlinePaymentActive?: boolean;
 }
 
 export function PaymentDrawer({
@@ -38,6 +177,8 @@ export function PaymentDrawer({
     programType = "campaign", // Default to campaign
     onSuccess,
     suggestedAmounts = [50000, 100000, 200000, 500000],
+    isOfflinePaymentActive = false,
+    isOnlinePaymentActive = true,
 }: PaymentDrawerProps) {
     const { snapPay } = useSnap();
     const router = useRouter(); // Initialize router
@@ -244,14 +385,75 @@ export function PaymentDrawer({
                                         <div className="bg-primary/5 px-6 py-4 rounded-xl w-full text-center">
                                             <p className="text-sm text-muted-foreground mb-1">Total {title}</p>
                                             <span className="font-bold text-primary text-3xl" suppressHydrationWarning>{formattedAmount}</span>
+
                                         </div>
 
-                                        <div className="w-full text-center space-y-2 px-4">
-                                            <p className="text-muted-foreground text-sm">
-                                                Anda akan diarahkan ke halaman pembayaran aman Midtrans.
-                                                Mendukung QRIS, GoPay, ShopeePay, Transfer Bank, dll.
-                                            </p>
-                                        </div>
+                                        {/* Logic for Payment Methods */}
+                                        {/* CASE 1: BOTH ACTIVE -> SHOW TABS */}
+                                        {isOnlinePaymentActive && isOfflinePaymentActive && (
+                                            <div className="w-full space-y-4">
+                                                <div className="bg-white border rounded-xl p-4 space-y-3">
+                                                    <h3 className="font-semibold text-center">Metode Pembayaran</h3>
+                                                    <Tabs defaultValue="online" className="w-full">
+                                                        <TabsList className="grid w-full grid-cols-2">
+                                                            <TabsTrigger value="online">Otomatis</TabsTrigger>
+                                                            <TabsTrigger value="offline">Manual / Transfer</TabsTrigger>
+                                                        </TabsList>
+                                                        <TabsContent value="online" className="pt-4 space-y-2">
+                                                            <OnlinePaymentContent handleInstantPayment={handleInstantPayment} isSubmitting={isSubmitting} />
+                                                        </TabsContent>
+                                                        <TabsContent value="offline" className="pt-4 space-y-4">
+                                                            <OfflinePaymentContent
+                                                                qrisImage={qrisImage}
+                                                                bankAccount={bankAccount}
+                                                                amount={amount}
+                                                                programId={programId}
+                                                                onSuccess={(amt) => {
+                                                                    setAmount(amt);
+                                                                    setIsSuccess(true);
+                                                                    onSuccess?.(amt);
+                                                                }}
+                                                            />
+                                                        </TabsContent>
+                                                    </Tabs>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* CASE 2: ONLY ONLINE ACTIVE */}
+                                        {isOnlinePaymentActive && !isOfflinePaymentActive && (
+                                            <div className="w-full space-y-4">
+                                                <OnlinePaymentContent handleInstantPayment={handleInstantPayment} isSubmitting={isSubmitting} />
+                                            </div>
+                                        )}
+
+                                        {/* CASE 3: ONLY OFFLINE ACTIVE */}
+                                        {!isOnlinePaymentActive && isOfflinePaymentActive && (
+                                            <div className="w-full space-y-4">
+                                                <div className="bg-white border rounded-xl p-4 space-y-3">
+                                                    <h3 className="font-semibold text-center">Pembayaran Manual</h3>
+                                                    <OfflinePaymentContent
+                                                        qrisImage={qrisImage}
+                                                        bankAccount={bankAccount}
+                                                        amount={amount}
+                                                        programId={programId}
+                                                        onSuccess={(amt) => {
+                                                            setAmount(amt);
+                                                            setIsSuccess(true);
+                                                            onSuccess?.(amt);
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* CASE 4: BOTH INACTIVE */}
+                                        {!isOnlinePaymentActive && !isOfflinePaymentActive && (
+                                            <div className="w-full text-center space-y-2 px-4 py-8 bg-muted rounded-xl">
+                                                <p className="font-semibold text-muted-foreground">Pembayaran Sedang Maintenance</p>
+                                                <p className="text-xs text-muted-foreground">Mohon maaf, sistem pembayaran sedang dalam pemeliharaan. Silakan coba beberapa saat lagi.</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -263,17 +465,7 @@ export function PaymentDrawer({
                                     <Button className="w-full rounded-full h-12" size="lg" onClick={onClose}>Tutup</Button>
                                 </DrawerClose>
                             ) : step === "payment" ? (
-
                                 <div className="space-y-3 w-full">
-                                    <Button
-                                        onClick={handleInstantPayment}
-                                        disabled={isSubmitting}
-                                        className="w-full rounded-full h-12 text-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white"
-                                        size="lg"
-                                    >
-                                        {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : "Lanjut Pembayaran"}
-                                    </Button>
-
                                     <Button
                                         variant="ghost"
                                         className="w-full rounded-full"

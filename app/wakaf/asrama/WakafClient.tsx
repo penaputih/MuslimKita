@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { PaymentDrawer } from "@/components/PaymentDrawer";
 import { ShareButton } from "@/components/ShareButton";
+import { DonationProgress } from "@/components/DonationProgress";
 
 interface WakafClientProps {
     qrisImage?: string;
@@ -18,8 +19,9 @@ interface WakafClientProps {
     image?: string | null;
     title?: string | null;
     category?: string | null;
-    totalDonors?: number;
     programId?: string;
+    isOfflinePaymentActive?: boolean;
+    isOnlinePaymentActive?: boolean;
 }
 
 export default function WakafClient({
@@ -31,13 +33,13 @@ export default function WakafClient({
     image,
     title,
     category,
-    totalDonors = 0,
-    programId
+    programId,
+    isOfflinePaymentActive = false,
+    isOnlinePaymentActive = true
 }: WakafClientProps) {
 
     const [raisedAmount, setRaisedAmount] = useState(initialRaised);
     const [isPaymentOpen, setIsPaymentOpen] = useState(false);
-    const [donorCount, setDonorCount] = useState(totalDonors);
 
     // Calculate progress percentage
     const rawProgress = targetAmount > 0 ? (raisedAmount / targetAmount) * 100 : 0;
@@ -48,7 +50,6 @@ export default function WakafClient({
 
     const handlePaymentSuccess = (amount: number) => {
         setRaisedAmount((prev) => prev + amount);
-        setDonorCount((prev) => prev + 1);
     };
 
     const defaultDescription = `Mari bersama wujudkan pembangunan Asrama Santri Tahfidz Quran yang layak dan nyaman bagi para penghafal Al-Quran. Asrama ini akan menjadi tempat tinggal bagi 100 santri yatim dan dhuafa yang sedang berjuang menghafal 30 juz Al-Quran.
@@ -114,34 +115,11 @@ Kenapa harus berwakaf disini?
                 <div className="relative px-4 -mt-16 z-20">
                     {/* Floating Progress Card */}
                     <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 shadow-xl border border-slate-100 dark:border-slate-800">
-                        <div className="space-y-6">
-                            {/* Stats Row */}
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold mb-2">Terkumpul</p>
-                                    <p className="text-2xl font-bold text-teal-600 leading-none tracking-tight" suppressHydrationWarning>
-                                        {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(raisedAmount)}
-                                    </p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-bold mb-2">Target</p>
-                                    <p className="text-sm font-semibold text-slate-500 leading-none" suppressHydrationWarning>
-                                        {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(targetAmount)}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Progress Bar & Footer */}
-                            <div className="space-y-3">
-                                <Progress value={visualProgress} className="h-3 bg-teal-50 dark:bg-teal-950/30 [&>div]:bg-teal-400" />
-                                <div className="flex justify-between text-sm">
-                                    <span suppressHydrationWarning className="text-slate-500">
-                                        {formattedProgress}% tercapai
-                                    </span>
-                                    <span className="text-slate-500 font-medium">{donorCount} Donatur</span>
-                                </div>
-                            </div>
-                        </div>
+                        <DonationProgress
+                            programId={programId || ""}
+                            targetAmount={targetAmount}
+                            initialCollected={raisedAmount}
+                        />
                     </div>
 
                     {/* Description Text */}
@@ -185,6 +163,8 @@ Kenapa harus berwakaf disini?
                 onSuccess={handlePaymentSuccess}
                 programId={programId}
                 programType="menuItem"
+                isOfflinePaymentActive={isOfflinePaymentActive}
+                isOnlinePaymentActive={isOnlinePaymentActive}
             />
         </main>
     );

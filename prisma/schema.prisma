@@ -152,6 +152,7 @@ model MenuItem {
   pageImage       String?
   targetAmount    Decimal?
   currentAmount   Decimal? @default(0)
+  lastResetAt     DateTime @default(now())
 
   createdAt DateTime @default(now())
 
@@ -176,4 +177,11 @@ model ChatMessage {
   sessionId String
   session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   createdAt DateTime    @default(now())
+}
+
+model StatsConfig {
+  id        String   @id @default(cuid())
+  key       String   @unique // e.g., "ZAKAT_ONLINE", "ZAKAT_OFFLINE"
+  resetAt   DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/renderer';
 import { formatCurrency } from '@/lib/utils';
-import { IndividualHeir, HEIR_LABELS } from '@/lib/waris';
+import { IndividualHeir, HEIR_LABELS, DISCLAIMER_TEXTS } from '@/lib/waris';
 import { CalculationResult } from '@/lib/warisLogic';
 
 // Define styles
@@ -224,18 +224,21 @@ interface WarisPdfDocumentProps {
         tajhiz: string;
         debt: string;
         wasiat: string;
+        gonoGini?: string;
     };
     heirs: IndividualHeir[];
     result: CalculationResult;
     deceasedGender: "L" | "P";
+    calculationMode?: "SYAFII" | "KHI";
 }
 
-export function WarisPdfDocument({ data, heirs, result, deceasedGender }: WarisPdfDocumentProps) {
-    const parseVal = (val: string) => parseInt(val.replace(/\D/g, "") || "0");
+export function WarisPdfDocument({ data, heirs, result, deceasedGender, calculationMode = "SYAFII" }: WarisPdfDocumentProps) {
+    const parseVal = (val: string) => parseInt(val?.replace(/\D/g, "") || "0");
     const numAssets = parseVal(data.assets);
     const numTajhiz = parseVal(data.tajhiz);
     const numDebt = parseVal(data.debt);
     const numWasiat = parseVal(data.wasiat);
+    const numGonoGini = parseVal(data.gonoGini || "0");
 
     const getInitials = (name: string) => name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
 
@@ -249,6 +252,10 @@ export function WarisPdfDocument({ data, heirs, result, deceasedGender }: WarisP
             reasonText = "Sisa (Asabah)";
         }
 
+        // Gono-Gini Logic for Spouse
+        const isSpouse = matched?.role === "Istri" || matched?.role === "Suami";
+        const gonoShare = (isSpouse && calculationMode === "KHI" && numGonoGini > 0) ? numGonoGini * 0.5 : 0;
+
         return {
             ...inputHeir,
             role: HEIR_LABELS[inputHeir.type],
@@ -256,11 +263,24 @@ export function WarisPdfDocument({ data, heirs, result, deceasedGender }: WarisP
             amount: matched?.finalAmount || 0,
             status: matched?.faraidStatus || "Ashabul Furud",
             note: reasonText,
-            isAsabah
+            isAsabah,
+            gonoShare, // Added for Table
+            totalReceive: (matched?.finalAmount || 0) + gonoShare
         };
     });
 
-    const totalDistributed = rows.reduce((acc, curr) => acc + curr.amount, 0);
+    const totalDistributed = rows.reduce((acc, curr) => acc + curr.totalReceive, 0);
+    // Note: totalDistributed in PDF footer usually refers to Waris Distributed. 
+    // But now with GonoGini, the logic implies simple addition. 
+    // However, technically GonoGini is NOT "Waris". 
+    // Let's keep totalDistributed as Waris Only for the footer matching Net Estate, 
+    // or separate it. The UI WarisResult keeps Total Terbagi as Waris Only.
+    // Let's stick to Waris Only for "Total Nominal Terbagi" to match Net Estate, 
+    // OR explicitly label it.
+    // User Requirement: "Grand Total: Display the sum of both values clearly." (Inside the cell).
+    // For the footer "Total Nominal Terbagi", if we include GonoGini it won't match "Harta Bersih".
+    // Let's calculate total distributed WARIS only for the footer check.
+    const totalWarisDistributed = rows.reduce((acc, curr) => acc + curr.amount, 0);
 
     return (
         <Document>
@@ -269,6 +289,9 @@ export function WarisPdfDocument({ data, heirs, result, deceasedGender }: WarisP
                 {/* HEADER */}
                 <View style={styles.header}>
                     <Text style={styles.title}>LAPORAN PEMBAGIAN WARIS ISLAM</Text>
+                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#0f766e', marginBottom: 2 }}>
+                        Metode: {calculationMode === "KHI" ? "Kompilasi Hukum Islam (KHI) - Indonesia" : "Mazhab Syafi'i (Standar)"}
+                    </Text>
                     <Text style={styles.subtitle}>
                         Dicetak otomatis oleh Aplikasi DISA - Daarussyifa Islamic Super App pada {new Date().toLocaleDateString('id-ID', { dateStyle: 'full' })}
                     </Text>
@@ -279,10 +302,32 @@ export function WarisPdfDocument({ data, heirs, result, deceasedGender }: WarisP
                     <Text style={styles.sectionTitle}>1. HARTA PENINGGALAN (TIRKAH)</Text>
                     <View style={styles.hartaGrid}>
                         <View style={styles.hartaCol}>
-                            <View style={styles.rowDotted}>
-                                <Text style={styles.label}>Total Aset</Text>
-                                <Text style={styles.value}>{formatCurrency(numAssets)}</Text>
-                            </View>
+                            {/* KHI Gono-Gini Breakdown */}
+                            {calculationMode === "KHI" && numGonoGini > 0 ? (
+                                <>
+                                    <View style={styles.rowDotted}>
+                                        <Text style={styles.label}>Total Aset (Suami+Istri)</Text>
+                                        <Text style={styles.value}>{formatCurrency(numAssets)}</Text>
+                                    </View>
+                                    <View style={styles.rowDotted}>
+                                        <Text style={{ ...styles.label, fontStyle: 'italic' }}>Total Harta Bersama (Gono-Gini)</Text>
+                                        <Text style={{ ...styles.value, fontStyle: 'italic' }}>{formatCurrency(numGonoGini)}</Text>
+                                    </View>
+                                    <View style={styles.rowDotted}>
+                                        <Text style={{ ...styles.label, color: '#dc2626' }}>(-) Hak Pasangan (50%)</Text>
+                                        <Text style={{ ...styles.value, color: '#dc2626' }}>({formatCurrency(numGonoGini * 0.5)})</Text>
+                                    </View>
+                                    <View style={styles.rowDotted}>
+                                        <Text style={{ ...styles.label, fontWeight: 'bold', color: '#0f766e' }}>Aset Waris (Milik Mayit)</Text>
+                                        <Text style={{ ...styles.value, color: '#0f766e' }}>{formatCurrency(numAssets - (numGonoGini * 0.5))}</Text>
+                                    </View>
+                                </>
+                            ) : (
+                                <View style={styles.rowDotted}>
+                                    <Text style={styles.label}>Total Aset</Text>
+                                    <Text style={styles.value}>{formatCurrency(numAssets)}</Text>
+                                </View>
+                            )}
                         </View>
                         <View style={styles.hartaCol}>
                             <View style={styles.rowDotted}>
@@ -318,8 +363,8 @@ export function WarisPdfDocument({ data, heirs, result, deceasedGender }: WarisP
                         <Text style={styles.value}>{formatCurrency(result.totalHarta)}</Text>
                     </View>
                     <View style={styles.neracaRow}>
-                        <Text style={styles.label}>Total Telah Terbagi</Text>
-                        <Text style={styles.value}>{formatCurrency(totalDistributed)}</Text>
+                        <Text style={styles.label}>Total Telah Terbagi (Waris)</Text>
+                        <Text style={styles.value}>{formatCurrency(totalWarisDistributed)}</Text>
                     </View>
                     <View style={{ ...styles.neracaRow, marginTop: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: '#e5e7eb' }}>
                         <Text style={styles.label}>Selisih / Sisa</Text>
@@ -348,7 +393,7 @@ export function WarisPdfDocument({ data, heirs, result, deceasedGender }: WarisP
                 </View>
 
                 {/* SECTION 4: TABEL */}
-                <View style={styles.section}>
+                <View style={styles.section} break>
                     <Text style={styles.sectionTitle}>4. HASIL PEMBAGIAN WARIS</Text>
                     <View style={styles.tableContainer}>
                         {/* Header */}
@@ -376,16 +421,27 @@ export function WarisPdfDocument({ data, heirs, result, deceasedGender }: WarisP
 
                                 <Text style={[styles.td, styles.colShare]}>{row.share}</Text>
 
-                                <Text style={[styles.td, styles.colAmount, { fontWeight: 'bold' }]}>
-                                    {formatCurrency(row.amount)}
-                                </Text>
+                                <View style={styles.colAmount}>
+                                    <Text style={{ fontSize: 9, fontWeight: 'bold', textAlign: 'right' }}>
+                                        {formatCurrency(row.amount)}
+                                    </Text>
+                                    {/* Gono Gini Breakdown */}
+                                    {row.gonoShare > 0 && (
+                                        <View style={{ marginTop: 4, paddingTop: 4, borderTopWidth: 1, borderTopColor: '#e2e8f0', borderStyle: 'dotted', alignItems: 'flex-end' }}>
+                                            <Text style={{ fontSize: 7, color: '#64748b' }}>+ Hak Gono-Gini (50%): {formatCurrency(row.gonoShare)}</Text>
+                                            <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#059669', marginTop: 1 }}>
+                                                TOTAL: {formatCurrency(row.totalReceive)}
+                                            </Text>
+                                        </View>
+                                    )}
+                                </View>
                             </View>
                         ))}
 
                         {/* Footer Table */}
                         <View style={styles.tableFooter}>
-                            <Text style={[styles.th, { width: '65%', textAlign: 'right', paddingRight: 10 }]}>TOTAL NOMINAL TERBAGI</Text>
-                            <Text style={[styles.th, { width: '35%', textAlign: 'right', fontSize: 10 }]}>{formatCurrency(totalDistributed)}</Text>
+                            <Text style={[styles.th, { width: '65%', textAlign: 'right', paddingRight: 10 }]}>TOTAL NOMINAL WARIS TERBAGI</Text>
+                            <Text style={[styles.th, { width: '35%', textAlign: 'right', fontSize: 10 }]}>{formatCurrency(totalWarisDistributed)}</Text>
                         </View>
                     </View>
                 </View>
@@ -395,7 +451,7 @@ export function WarisPdfDocument({ data, heirs, result, deceasedGender }: WarisP
                     <View style={styles.disclaimer}>
                         <Text style={{ fontWeight: 'bold', marginBottom: 2 }}>DISCLAIMER:</Text>
                         <Text>
-                            Perhitungan ini menggunakan kaidah Fiqh Mawaris Mazhab Syafi'i standar. Angka yang tertera adalah hasil ijtihad sistem berdasarkan input Anda. Mohon konsultasikan kembali dengan Asatidz atau ulama setempat untuk penetapan final dan eksekusi pembagian.
+                            {DISCLAIMER_TEXTS[calculationMode]}
                         </Text>
                     </View>
                     <View style={styles.signature}>
