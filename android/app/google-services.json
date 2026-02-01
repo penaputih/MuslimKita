@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "570441006537",
+    "project_id": "app-dev-db8aa",
+    "storage_bucket": "app-dev-db8aa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:570441006537:android:17fac8a8b7adc450223c18",
+        "android_client_info": {
+          "package_name": "com.daarussyifa.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBXLlFmeJ0OvbFdlBvuToylOGQtw84PfNY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

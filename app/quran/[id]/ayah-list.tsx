@@ -1,9 +1,10 @@
 "use client";
 
 import { SurahDetail, Ayah } from "@/lib/api";
-import { Play, Pause, BookOpenText, Copy, Share2, Check } from "lucide-react";
+import { Play, Pause, BookOpenText, Copy, Share2, Check, Download, CloudDownload } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { AudioDownloadManager } from "@/lib/audio-manager";
 import {
     Dialog,
     DialogContent,
@@ -78,16 +79,34 @@ export function AyahList({ surah, tafsir }: AyahListProps) {
         }
     };
 
-    const toggleAyahAudio = (index: number, audioUrl: string) => {
+    const toggleAyahAudio = async (index: number, audioUrl: string, ayah: Ayah) => {
         if (playingAyah === index) {
             stopAudio();
         } else {
             stopAudio(); // Ensure other audios stop
-            const audio = new Audio(audioUrl);
+
+            // Check local first
+            const playUrl = await AudioDownloadManager.getAudioUrl(
+                surah.nomor,
+                ayah.nomorAyat,
+                audioUrl
+            );
+
+            const audio = new Audio(playUrl);
             audioRef.current = audio;
             audio.play();
             audio.onended = () => setPlayingAyah(null);
             setPlayingAyah(index);
+        }
+    };
+
+    const handleDownloadAudio = async (ayah: Ayah) => {
+        try {
+            toast({ description: "Mulai mengunduh audio..." });
+            await AudioDownloadManager.downloadAudio(surah.nomor, ayah.nomorAyat, ayah.audio["05"]);
+            toast({ description: "Audio berhasil diunduh (Offline Ready)" });
+        } catch (e) {
+            toast({ variant: "destructive", description: "Gagal mengunduh audio" });
         }
     };
 
@@ -204,11 +223,20 @@ export function AyahList({ surah, tafsir }: AyahListProps) {
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => toggleAyahAudio(index, ayah.audio["05"])}
+                                onClick={() => toggleAyahAudio(index, ayah.audio["05"], ayah)}
                                 className={`gap-2 h-8 rounded-full ${playingAyah === index ? "text-emerald-600 bg-emerald-50" : "text-neutral-500 hover:text-emerald-600 hover:bg-emerald-50"}`}
                             >
                                 {playingAyah === index ? <Pause className="size-4" /> : <Play className="size-4" />}
                                 <span className="text-xs font-medium">Play</span>
+                            </Button>
+
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDownloadAudio(ayah)}
+                                className="gap-2 h-8 rounded-full text-neutral-500 hover:text-emerald-600 hover:bg-emerald-50"
+                            >
+                                <CloudDownload className="size-4" />
                             </Button>
 
                             <Button

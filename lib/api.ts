@@ -95,15 +95,12 @@ export async function getPrayerTimes(city: string = "Bandung", country: string =
 // API Docs: https://equran.id/apiv2/
 const QURAN_API_BASE = "https://equran.id/api/v2";
 
+import { fetchWithCache } from './cache-manager';
+
 export async function getSurahList() {
     try {
-        const res = await fetch(`${QURAN_API_BASE}/surat`, {
-            next: { revalidate: 86400 } // Cache for 24 hours
-        });
+        const json = await fetchWithCache<any>(`${QURAN_API_BASE}/surat`);
 
-        if (!res.ok) throw new Error("Failed to fetch surah list");
-
-        const json = await res.json();
         const data = json.data as any[];
 
         // Map Equran response to our interface
@@ -126,13 +123,7 @@ export async function getSurahList() {
 
 export async function getSurahDetail(nomor: number) {
     try {
-        const res = await fetch(`${QURAN_API_BASE}/surat/${nomor}`, {
-            next: { revalidate: 86400 }
-        });
-
-        if (!res.ok) throw new Error("Failed to fetch surah detail");
-
-        const json = await res.json();
+        const json = await fetchWithCache<any>(`${QURAN_API_BASE}/surat/${nomor}`);
         const data = json.data;
 
         // Map to SurahDetail interface

@@ -15,13 +15,23 @@ const config: CapacitorConfig = {
             'accounts.google.com'
         ]
     },
+    backgroundColor: "#ffffff",
     plugins: {
+        SplashScreen: {
+            launchShowDuration: 2000,
+            backgroundColor: "#ffffff", // Sesuaikan dengan warna background gambar splash kamu
+            showSpinner: false,
+            androidScaleType: "CENTER_CROP",
+
+        },
         GoogleAuth: {
             scopes: ['profile', 'email'],
             serverClientId: '722190074692-upp6tm6iskg4ksrdrfc63i1n9j6cenb1.apps.googleusercontent.com',
             forceCodeForRefreshToken: true,
         },
     },
+
+
 };
 
 export default config;

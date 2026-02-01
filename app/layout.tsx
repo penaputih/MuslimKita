@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import { DesktopLayoutWrapper } from "@/components/DesktopLayoutWrapper";
+import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -54,6 +55,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <AnalyticsTracker />
           <GoogleAuthInitializer />
           <BackButtonHandler />
           <DesktopLayoutWrapper>

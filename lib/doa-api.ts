@@ -9,11 +9,11 @@ export interface DoaItem {
 // Direct API URL
 const API_BASE_URL = "https://equran.id/api/doa";
 
+import { fetchWithCache } from './cache-manager';
+
 export async function getDoaList(): Promise<DoaItem[]> {
     try {
-        const res = await fetch(API_BASE_URL);
-        if (!res.ok) throw new Error("Failed to fetch doa");
-        const response = await res.json();
+        const response = await fetchWithCache<any>(API_BASE_URL);
         const data = response.data || response; // Handle wrapper if exists
 
         // Data from equran.id usually comes as array of objects
